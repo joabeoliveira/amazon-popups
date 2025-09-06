@@ -251,4 +251,39 @@ jQuery(document).ready(function($) {
     // Carrossel Bootstrap foi removido para evitar conflitos
     // Substituído por cards simples que funcionam melhor
     console.log('Amazon Plugin: Funcionalidade de carrossel removida');
+    
+    // ============================================
+    // === FUNCIONALIDADE SHORTCODE DETALHADO ===
+    // ============================================
+    
+    // Funcionalidade para abas do shortcode detalhado
+    $(document).on('click', '.amazon-tab-btn', function() {
+        var $this = $(this);
+        var $container = $this.closest('.amazon-info-tabs');
+        var targetTab = $this.data('tab');
+        
+        // Remove active de todos os botões e adiciona no clicado
+        $container.find('.amazon-tab-btn').removeClass('active');
+        $this.addClass('active');
+        
+        // Hide todas as abas e mostra a selecionada
+        $container.find('.amazon-tab-pane').removeClass('active');
+        $container.find('#' + targetTab).addClass('active');
+    });
+    
+    // Funcionalidade para galeria de imagens
+    $(document).on('click', '.amazon-gallery-thumb', function() {
+        var $this = $(this);
+        var newSrc = $this.attr('src');
+        var $mainImage = $this.closest('.amazon-product-gallery').find('.amazon-product-image-main');
+        
+        // Troca a imagem principal
+        $mainImage.attr('src', newSrc);
+        
+        // Remove active de todas as thumbs e adiciona na clicada
+        $this.siblings('.amazon-gallery-thumb').removeClass('active');
+        $this.addClass('active');
+    });
+    
+    console.log('Amazon Plugin: Funcionalidade de shortcode detalhado carregada');
 });

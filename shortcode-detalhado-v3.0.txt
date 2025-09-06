@@ -1,0 +1,132 @@
+SHORTCODE DETALHADO COMPLETO - VERSÃO 3.0
+
+🎯 NOVO SHORTCODE: amazon_product_details
+
+Este é o shortcode mais completo do plugin, que exibe TODAS as informações do produto em um layout profissional e responsivo.
+
+=== COMO USAR ===
+
+Básico (obrigatório apenas o product_id):
+[amazon_product_details product_id="123"]
+
+Completo com todas as opções:
+[amazon_product_details 
+    product_id="123" 
+    show_specs="yes" 
+    show_reviews="yes" 
+    show_additional_info="yes" 
+    show_gallery="yes" 
+    show_related="yes" 
+    template="detailed"
+]
+
+=== PARÂMETROS DISPONÍVEIS ===
+
+✅ product_id (obrigatório): ID do post/produto
+✅ show_specs: Exibe especificações técnicas (yes/no)
+✅ show_reviews: Exibe avaliações simuladas (yes/no)
+✅ show_additional_info: Exibe abas com informações extras (yes/no)
+✅ show_gallery: Exibe galeria de imagens (yes/no) 
+✅ show_related: Exibe produtos relacionados (yes/no)
+✅ template: Modelo de exibição (atualmente: "detailed")
+
+=== O QUE É EXIBIDO ===
+
+🏷️ CABEÇALHO PREMIUM:
+- Título do produto com destaque
+- Badge "Produto Amazon Verificado"
+- Fundo gradient laranja
+
+📸 GALERIA DE IMAGENS:
+- Imagem principal responsiva (400px altura)
+- Miniaturas clicáveis (se existirem)
+- Efeitos hover e transições suaves
+
+📋 INFORMAÇÕES DO PRODUTO:
+- Descrição completa ou excerpt
+- Preços com destaque para promoções
+- Cálculo automático de desconto
+- Botão CTA premium com ícone
+
+🔧 ESPECIFICAÇÕES TÉCNICAS:
+- Peso, dimensões (WooCommerce)
+- Atributos personalizados
+- Meta fields customizados:
+  * _amazon_brand (Marca)
+  * _amazon_model (Modelo)
+  * _amazon_color (Cor)
+  * _amazon_material (Material)
+  * _amazon_warranty (Garantia)
+  * _amazon_origin (Origem)
+
+📑 INFORMAÇÕES ADICIONAIS (ABAS):
+- Entrega (Prime, frete grátis, rastreamento)
+- Devoluções (30 dias, processo simplificado)
+- Garantia (fabricante, proteção A-Z)
+
+⭐ AVALIAÇÕES E REVIEWS:
+- Resumo de avaliações (4.3/5 estrelas)
+- Reviews simuladas realistas
+- Badges "Compra Verificada"
+- Datas realistas
+
+🔗 PRODUTOS RELACIONADOS:
+- Busca automática por categoria
+- Grid responsivo
+- Imagens e CTAs
+
+=== EXEMPLOS PRÁTICOS ===
+
+Para um produto específico:
+[amazon_product_details product_id="456"]
+
+Apenas especificações e preço:
+[amazon_product_details product_id="789" show_reviews="no" show_additional_info="no" show_related="no"]
+
+Sem galeria (para produtos sem imagens):
+[amazon_product_details product_id="321" show_gallery="no"]
+
+=== RECURSOS TÉCNICOS ===
+
+✅ Layout em grid 2 colunas (responsivo)
+✅ Sticky gallery (fica fixo no scroll)
+✅ Abas interativas com JavaScript
+✅ Galeria com troca de imagens
+✅ Preços com cálculo de desconto
+✅ Busca automática de atributos WooCommerce
+✅ Fallbacks para produtos sem dados
+✅ Design mobile-first
+
+=== RESPONSIVIDADE ===
+
+🖥️ Desktop: Layout 2 colunas, galeria sticky
+📱 Tablet: Layout empilhado, abas verticais
+📱Mobile: Layout compacto, botões grandes
+
+=== COMPATIBILIDADE ===
+
+✅ Posts WordPress
+✅ Produtos WooCommerce  
+✅ Meta fields personalizados
+✅ Atributos de produto
+✅ Galeria de imagens
+✅ Taxonomias (categorias)
+
+=== DIFERENCIAL ===
+
+Este shortcode substitui completamente qualquer necessidade de carrossel ou layouts simples. Ele oferece:
+
+- Informações técnicas completas
+- Design profissional tipo Amazon
+- Interatividade total (abas, galeria)
+- Reviews simuladas convincentes
+- Layout responsivo perfeito
+- Zero dependências externas
+- Performance otimizada
+
+=== INSTALAÇÃO ===
+
+O shortcode já está ativo! Basta usar:
+[amazon_product_details product_id="SEU_ID_AQUI"]
+
+E toda a funcionalidade estará disponível automaticamente.

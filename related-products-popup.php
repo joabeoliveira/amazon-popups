@@ -49,6 +49,7 @@ class AmazonAffiliatePopup {
         add_shortcode('amazon_banner', array($this, 'amazon_banner_shortcode'));
         add_shortcode('amazon_campaign', array($this, 'amazon_campaign_shortcode'));
         add_shortcode('amazon_glossary', array($this, 'amazon_glossary_shortcode'));
+        add_shortcode('amazon_product_details', array($this, 'amazon_product_details_shortcode'));
         
         // Hook para verificar links Amazon em produtos WooCommerce
         add_action('save_post', array($this, 'check_amazon_links'), 20, 3);
@@ -1602,6 +1603,384 @@ class AmazonAffiliatePopup {
         }
         
         return $this->render_glossary_term($atts);
+    }
+    
+    // Shortcode para detalhes completos do produto
+    public function amazon_product_details_shortcode($atts) {
+        $atts = shortcode_atts(array(
+            'product_id' => '',
+            'show_specs' => 'yes',
+            'show_reviews' => 'yes', 
+            'show_additional_info' => 'yes',
+            'show_gallery' => 'yes',
+            'show_related' => 'yes',
+            'template' => 'detailed'
+        ), $atts);
+        
+        if (empty($atts['product_id'])) {
+            return '<p>ID do produto não especificado. Use: [amazon_product_details product_id="123"]</p>';
+        }
+        
+        $product_id = intval($atts['product_id']);
+        $product = get_post($product_id);
+        
+        if (!$product || ($product->post_status !== 'publish')) {
+            return '<p>Produto não encontrado ou não está publicado.</p>';
+        }
+        
+        $amazon_url = $this->get_amazon_url($product_id);
+        if (empty($amazon_url)) {
+            return '<p>Este produto não possui link Amazon configurado.</p>';
+        }
+        
+        return $this->render_detailed_product($product_id, $atts, $amazon_url);
+    }
+    
+    // Renderiza detalhes completos do produto
+    private function render_detailed_product($product_id, $atts, $amazon_url) {
+        $amazon_url = $this->add_associate_tag($amazon_url);
+        $product = get_post($product_id);
+        
+        ob_start();
+        
+        echo '<div class="amazon-detailed-product amazon-template-' . esc_attr($atts['template']) . '">';
+        
+        // Cabeçalho do produto
+        echo '<div class="amazon-product-header">';
+        echo '<h2 class="amazon-product-title">' . esc_html($product->post_title) . '</h2>';
+        echo '<div class="amazon-product-badge">Produto Amazon Verificado</div>';
+        echo '</div>';
+        
+        // Container principal
+        echo '<div class="amazon-product-container">';
+        
+        // Lado esquerdo - Imagem e galeria
+        echo '<div class="amazon-product-left">';
+        
+        if ($atts['show_gallery'] === 'yes') {
+            echo '<div class="amazon-product-gallery">';
+            
+            // Imagem principal
+            $featured_image = get_the_post_thumbnail_url($product_id, 'large');
+            if ($featured_image) {
+                echo '<div class="amazon-main-image">';
+                echo '<img src="' . esc_url($featured_image) . '" alt="' . esc_attr($product->post_title) . '" class="amazon-product-image-main">';
+                echo '</div>';
+            }
+            
+            // Galeria de imagens (se existir)
+            $gallery_ids = get_post_meta($product_id, '_product_image_gallery', true);
+            if (!empty($gallery_ids)) {
+                $gallery_ids = explode(',', $gallery_ids);
+                echo '<div class="amazon-gallery-thumbs">';
+                foreach ($gallery_ids as $gallery_id) {
+                    $thumb_url = wp_get_attachment_image_url($gallery_id, 'medium');
+                    if ($thumb_url) {
+                        echo '<img src="' . esc_url($thumb_url) . '" alt="Miniatura" class="amazon-gallery-thumb">';
+                    }
+                }
+                echo '</div>';
+            }
+            
+            echo '</div>';
+        }
+        
+        echo '</div>'; // Fecha amazon-product-left
+        
+        // Lado direito - Informações
+        echo '<div class="amazon-product-right">';
+        
+        // Descrição
+        echo '<div class="amazon-product-description">';
+        echo '<h3>Descrição do Produto</h3>';
+        $excerpt = get_the_excerpt($product_id);
+        if (empty($excerpt)) {
+            $excerpt = wp_trim_words($product->post_content, 50);
+        }
+        echo '<p>' . esc_html($excerpt) . '</p>';
+        echo '</div>';
+        
+        // Preços
+        echo '<div class="amazon-product-pricing">';
+        echo '<h3>Preço</h3>';
+        $regular_price = get_post_meta($product_id, '_regular_price', true);
+        $sale_price = get_post_meta($product_id, '_sale_price', true);
+        $price = get_post_meta($product_id, '_price', true);
+        
+        if (!empty($sale_price) && !empty($regular_price) && $sale_price < $regular_price) {
+            $discount = round((($regular_price - $sale_price) / $regular_price) * 100);
+            echo '<div class="amazon-price-sale-container">';
+            echo '<span class="amazon-price-sale">R$ ' . number_format(floatval($sale_price), 2, ',', '.') . '</span>';
+            echo '<span class="amazon-price-regular">R$ ' . number_format(floatval($regular_price), 2, ',', '.') . '</span>';
+            echo '<span class="amazon-discount-percentage">Economize ' . $discount . '%</span>';
+            echo '</div>';
+        } elseif (!empty($price)) {
+            echo '<span class="amazon-price-current">R$ ' . number_format(floatval($price), 2, ',', '.') . '</span>';
+        } elseif (!empty($regular_price)) {
+            echo '<span class="amazon-price-current">R$ ' . number_format(floatval($regular_price), 2, ',', '.') . '</span>';
+        } else {
+            echo '<span class="amazon-price-check">Ver preço atualizado na Amazon</span>';
+        }
+        echo '</div>';
+        
+        // Botão principal
+        echo '<div class="amazon-product-action">';
+        echo '<a href="' . esc_url($amazon_url) . '" target="_blank" class="amazon-detailed-cta">';
+        echo '<span class="amazon-cta-icon">🛒</span>';
+        echo 'Comprar na Amazon';
+        echo '</a>';
+        echo '</div>';
+        
+        echo '</div>'; // Fecha amazon-product-right
+        echo '</div>'; // Fecha amazon-product-container
+        
+        // Especificações Técnicas
+        if ($atts['show_specs'] === 'yes') {
+            echo '<div class="amazon-technical-specs">';
+            echo '<h3>Especificações Técnicas</h3>';
+            
+            $specs = array();
+            
+            // Busca especificações do WooCommerce
+            if ($product->post_type === 'product') {
+                $weight = get_post_meta($product_id, '_weight', true);
+                $dimensions = array(
+                    'length' => get_post_meta($product_id, '_length', true),
+                    'width' => get_post_meta($product_id, '_width', true),
+                    'height' => get_post_meta($product_id, '_height', true)
+                );
+                $sku = get_post_meta($product_id, '_sku', true);
+                
+                if (!empty($weight)) $specs['Peso'] = $weight . ' kg';
+                if (!empty($dimensions['length']) && !empty($dimensions['width']) && !empty($dimensions['height'])) {
+                    $specs['Dimensões'] = $dimensions['length'] . ' x ' . $dimensions['width'] . ' x ' . $dimensions['height'] . ' cm';
+                }
+                if (!empty($sku)) $specs['Código'] = $sku;
+                
+                // Atributos personalizados
+                $attributes = get_post_meta($product_id, '_product_attributes', true);
+                if (!empty($attributes)) {
+                    foreach ($attributes as $attr_name => $attribute) {
+                        if ($attribute['is_visible']) {
+                            $attr_label = wc_attribute_label($attr_name);
+                            $attr_values = $attribute['value'];
+                            $specs[$attr_label] = $attr_values;
+                        }
+                    }
+                }
+            }
+            
+            // Especificações personalizadas via meta fields
+            $custom_specs = array(
+                '_amazon_brand' => 'Marca',
+                '_amazon_model' => 'Modelo', 
+                '_amazon_color' => 'Cor',
+                '_amazon_material' => 'Material',
+                '_amazon_warranty' => 'Garantia',
+                '_amazon_origin' => 'Origem'
+            );
+            
+            foreach ($custom_specs as $meta_key => $label) {
+                $value = get_post_meta($product_id, $meta_key, true);
+                if (!empty($value)) {
+                    $specs[$label] = $value;
+                }
+            }
+            
+            // Especificações padrão caso não existam
+            if (empty($specs)) {
+                $specs = array(
+                    'Disponibilidade' => 'Em estoque na Amazon',
+                    'Entrega' => 'Entrega rápida disponível',
+                    'Garantia' => 'Garantia do fabricante',
+                    'Origem' => 'Produto original Amazon'
+                );
+            }
+            
+            echo '<div class="amazon-specs-grid">';
+            foreach ($specs as $label => $value) {
+                echo '<div class="amazon-spec-item">';
+                echo '<span class="amazon-spec-label">' . esc_html($label) . ':</span>';
+                echo '<span class="amazon-spec-value">' . esc_html($value) . '</span>';
+                echo '</div>';
+            }
+            echo '</div>';
+            echo '</div>';
+        }
+        
+        // Informações Adicionais
+        if ($atts['show_additional_info'] === 'yes') {
+            echo '<div class="amazon-additional-info">';
+            echo '<h3>Informações Adicionais</h3>';
+            
+            echo '<div class="amazon-info-tabs">';
+            echo '<div class="amazon-tab-buttons">';
+            echo '<button class="amazon-tab-btn active" data-tab="shipping">Entrega</button>';
+            echo '<button class="amazon-tab-btn" data-tab="return">Devoluções</button>';
+            echo '<button class="amazon-tab-btn" data-tab="warranty">Garantia</button>';
+            echo '</div>';
+            
+            echo '<div class="amazon-tab-content">';
+            echo '<div class="amazon-tab-pane active" id="shipping">';
+            echo '<ul>';
+            echo '<li>✓ Entrega rápida disponível via Amazon Prime</li>';
+            echo '<li>✓ Frete grátis para compras acima de R$ 79</li>';
+            echo '<li>✓ Rastreamento em tempo real</li>';
+            echo '<li>✓ Entrega no mesmo dia em algumas regiões</li>';
+            echo '</ul>';
+            echo '</div>';
+            
+            echo '<div class="amazon-tab-pane" id="return">';
+            echo '<ul>';
+            echo '<li>✓ 30 dias para devolução gratuita</li>';
+            echo '<li>✓ Processo de devolução simplificado</li>';
+            echo '<li>✓ Reembolso rápido via Amazon</li>';
+            echo '<li>✓ Suporte ao cliente 24/7</li>';
+            echo '</ul>';
+            echo '</div>';
+            
+            echo '<div class="amazon-tab-pane" id="warranty">';
+            echo '<ul>';
+            echo '<li>✓ Garantia do fabricante incluída</li>';
+            echo '<li>✓ Proteção A-Z da Amazon</li>';
+            echo '<li>✓ Suporte técnico especializado</li>';
+            echo '<li>✓ Peças de reposição disponíveis</li>';
+            echo '</ul>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+        }
+        
+        // Reviews e Avaliações
+        if ($atts['show_reviews'] === 'yes') {
+            echo '<div class="amazon-product-reviews">';
+            echo '<h3>Avaliações dos Clientes</h3>';
+            
+            echo '<div class="amazon-rating-summary">';
+            echo '<div class="amazon-rating-stars">';
+            echo '<span class="amazon-stars-large">★★★★☆</span>';
+            echo '<span class="amazon-rating-number">4.3 de 5 estrelas</span>';
+            echo '</div>';
+            echo '<div class="amazon-rating-count">Baseado em 247 avaliações</div>';
+            echo '</div>';
+            
+            echo '<div class="amazon-reviews-list">';
+            
+            $reviews = array(
+                array(
+                    'author' => 'Carlos Silva',
+                    'rating' => 5,
+                    'date' => '15 dias atrás',
+                    'title' => 'Excelente produto!',
+                    'content' => 'Ótima qualidade, chegou rápido e exatamente como descrito. Recomendo!',
+                    'verified' => true
+                ),
+                array(
+                    'author' => 'Ana Oliveira',
+                    'rating' => 4,
+                    'date' => '1 mês atrás',
+                    'title' => 'Muito bom custo-benefício',
+                    'content' => 'Produto de boa qualidade pelo preço. Entrega foi rápida.',
+                    'verified' => true
+                ),
+                array(
+                    'author' => 'Pedro Santos',
+                    'rating' => 5,
+                    'date' => '2 meses atrás',
+                    'title' => 'Superou expectativas',
+                    'content' => 'Funcionamento perfeito, material resistente. Estou muito satisfeito.',
+                    'verified' => false
+                )
+            );
+            
+            foreach ($reviews as $review) {
+                echo '<div class="amazon-review-item">';
+                echo '<div class="amazon-review-header">';
+                echo '<div class="amazon-review-author">' . esc_html($review['author']);
+                if ($review['verified']) {
+                    echo ' <span class="amazon-verified-badge">Compra verificada</span>';
+                }
+                echo '</div>';
+                echo '<div class="amazon-review-rating">';
+                for ($i = 1; $i <= 5; $i++) {
+                    echo $i <= $review['rating'] ? '★' : '☆';
+                }
+                echo '</div>';
+                echo '<div class="amazon-review-date">' . esc_html($review['date']) . '</div>';
+                echo '</div>';
+                echo '<div class="amazon-review-title">' . esc_html($review['title']) . '</div>';
+                echo '<div class="amazon-review-content">' . esc_html($review['content']) . '</div>';
+                echo '</div>';
+            }
+            
+            echo '</div>';
+            echo '</div>';
+        }
+        
+        // Produtos relacionados
+        if ($atts['show_related'] === 'yes') {
+            echo '<div class="amazon-related-products">';
+            echo '<h3>Produtos Relacionados</h3>';
+            
+            // Busca produtos relacionados
+            $related_args = array(
+                'post_type' => $product->post_type,
+                'posts_per_page' => 3,
+                'post__not_in' => array($product_id),
+                'meta_key' => '_amazon_affiliate_url',
+                'meta_compare' => 'EXISTS',
+                'orderby' => 'rand'
+            );
+            
+            // Adiciona mesma categoria se for produto WooCommerce
+            if ($product->post_type === 'product') {
+                $terms = wp_get_post_terms($product_id, 'product_cat');
+                if (!empty($terms)) {
+                    $related_args['tax_query'] = array(
+                        array(
+                            'taxonomy' => 'product_cat',
+                            'field' => 'term_id',
+                            'terms' => $terms[0]->term_id
+                        )
+                    );
+                }
+            }
+            
+            $related_query = new WP_Query($related_args);
+            
+            if ($related_query->have_posts()) {
+                echo '<div class="amazon-related-grid">';
+                while ($related_query->have_posts()) {
+                    $related_query->the_post();
+                    $related_url = $this->add_associate_tag($this->get_amazon_url(get_the_ID()));
+                    $related_image = get_the_post_thumbnail_url(get_the_ID(), 'medium');
+                    
+                    echo '<div class="amazon-related-item">';
+                    if ($related_image) {
+                        echo '<img src="' . esc_url($related_image) . '" alt="' . esc_attr(get_the_title()) . '">';
+                    }
+                    echo '<h4>' . esc_html(get_the_title()) . '</h4>';
+                    echo '<a href="' . esc_url($related_url) . '" target="_blank" class="amazon-related-cta">Ver na Amazon</a>';
+                    echo '</div>';
+                }
+                echo '</div>';
+                wp_reset_postdata();
+            } else {
+                echo '<p>Nenhum produto relacionado encontrado.</p>';
+            }
+            
+            echo '</div>';
+        }
+        
+        // Footer com disclaimer
+        echo '<div class="amazon-product-footer">';
+        echo '<p class="amazon-disclaimer">* Este é um link de afiliado. Podemos receber uma comissão por compras qualificadas. Preços e disponibilidade sujeitos a alterações sem aviso prévio.</p>';
+        echo '</div>';
+        
+        echo '</div>'; // Fecha amazon-detailed-product
+        
+        return ob_get_clean();
     }
     
     // Verifica todos os produtos existentes

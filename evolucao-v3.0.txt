@@ -1,0 +1,124 @@
+EVOLUÇÃO DO PLUGIN AMAZON POPUPS - VERSÃO 3.0
+
+🎯 HISTÓRICO DE MELHORIAS
+
+=== VERSÃO 2.8 - CORREÇÃO DE NAVEGAÇÃO ===
+- Problemas com controles de carrossel
+- IDs conflitantes entre desktop e mobile
+- Navegação não funcionava corretamente
+
+=== VERSÃO 2.9 - CORREÇÃO BOOTSTRAP ===
+- Bootstrap não carregava em widgets
+- Dependências problemáticas
+- Carregamento condicional melhorado
+
+=== VERSÃO 3.0 - REMOÇÃO DO CARROSSEL ===
+✅ DECISÃO TÉCNICA: Carrossel Bootstrap REMOVIDO
+✅ SUBSTITUIÇÃO: Sistema de cards estáveis
+✅ RESULTADO: Plugin mais confiável
+
+=== FUNCIONALIDADES ATUAIS ===
+
+🎨 TEMPLATES DISPONÍVEIS:
+• [amazon_products template="cards"] - Cards informativos
+• [amazon_products template="grid"] - Grid simples  
+• [amazon_products template="list"] - Lista vertical
+
+🔍 SHORTCODE COMPLETO:
+• [amazon_product_details product_id="123"] - Informações detalhadas
+
+📋 FILTROS POR CATEGORIA:
+• [amazon_products category="tecnologia"] - Por categoria
+• [amazon_products post_type="product" category="eletronicos"] - WooCommerce
+
+=== RECURSOS DO TEMPLATE CARDS ===
+
+✓ Especificações técnicas detalhadas
+✓ Avaliações e reviews simuladas
+✓ Comentários de clientes
+✓ Badges de desconto calculados
+✓ Preços com promoções destacadas
+✓ Design responsivo completo
+
+=== RECURSOS DO SHORTCODE DETALHADO ===
+
+🖼️ GALERIA INTERATIVA:
+- Imagem principal responsiva
+- Miniaturas clicáveis
+- Efeitos hover
+
+📊 ESPECIFICAÇÕES TÉCNICAS:
+- Peso, dimensões (WooCommerce)
+- Atributos personalizados
+- Meta fields customizados
+
+📑 ABAS INFORMATIVAS:
+- Entrega (Prime, frete grátis)
+- Devoluções (30 dias)
+- Garantia (fabricante)
+
+⭐ AVALIAÇÕES:
+- Rating com estrelas
+- Reviews simuladas realistas
+- Badges verificadas
+
+🔗 PRODUTOS RELACIONADOS:
+- Busca automática por categoria
+- Grid responsivo
+
+=== VANTAGENS DA VERSÃO 3.0 ===
+
+🚀 ESTABILIDADE:
+- Zero dependências externas
+- Sem conflitos com temas/plugins
+- Funcionamento universal garantido
+
+⚡ PERFORMANCE:
+- CSS otimizado customizado
+- JavaScript mínimo necessário
+- Carregamento mais rápido
+
+🎨 DESIGN:
+- Layout profissional tipo Amazon
+- Responsividade mobile-first
+- Animações suaves nativas
+
+🔧 MANUTENÇÃO:
+- Código limpo e organizado
+- Menos pontos de falha
+- Fácil customização
+
+=== COMPATIBILIDADE ===
+
+✅ WordPress Posts
+✅ WooCommerce Products
+✅ Widgets da sidebar
+✅ Campos personalizados (ACF)
+✅ Page builders
+✅ Qualquer tema WordPress
+
+=== MIGRAÇÃO RECOMENDADA ===
+
+SE VOCÊ USAVA:
+❌ [amazon_products template="carousel"]
+
+USE AGORA:
+✅ [amazon_products template="cards" count="6"]
+✅ [amazon_product_details product_id="123"]
+
+=== DOCUMENTAÇÃO RELACIONADA ===
+
+📄 exemplo-cards.txt - Como usar os cards
+📄 correcao-categoria-v2.9.txt - Filtros por categoria  
+📄 shortcode-detalhado-v3.0.txt - Shortcode completo
+📄 correcao-bootstrap-v2.9.txt - Histórico de mudanças
+
+=== CONCLUSÃO ===
+
+A versão 3.0 representa uma evolução significativa:
+- Eliminação de problemas técnicos
+- Melhoria na experiência do usuário  
+- Funcionalidades mais ricas
+- Maior confiabilidade geral
+
+O plugin agora é mais estável, informativo e eficaz para conversões Amazon! 🎉

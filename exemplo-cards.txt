@@ -1,12 +1,10 @@
-EXEMPLO DE USO DOS NOVOS CARDS
+EXEMPLO DE USO DOS CARDS MELHORADOS
 
-Para usar os novos cards com especificações, reviews e comentários, utilize o shortcode:
+Para usar os cards com especificações, reviews e comentários, utilize o shortcode:
 
 [amazon_products template="cards" count="3"]
 
-O carrossel Bootstrap foi REMOVIDO e substituído por cards mais estáveis e informativos.
-
-NOVOS RECURSOS DOS CARDS:
+RECURSOS DOS CARDS:
 ✓ Especificações do produto
 ✓ Avaliações dos clientes
 ✓ Comentários recentes
@@ -15,7 +13,7 @@ NOVOS RECURSOS DOS CARDS:
 ✓ Efeitos hover suaves
 ✓ Sem dependências externas
 
-Os cards agora incluem:
+Os cards incluem:
 - Badge de desconto no canto superior direito
 - Seção de especificações com itens destacados
 - Reviews simuladas com estrelas
@@ -23,8 +21,12 @@ Os cards agora incluem:
 - Preços com destaque para promoções
 - Botão call-to-action melhorado
 
-COMPARAÇÃO:
-Antes: [amazon_products template="carousel"] - PROBLEMA: quebrava páginas
-Agora:  [amazon_products template="cards"] - ESTÁVEL e FUNCIONAL
+TEMPLATES DISPONÍVEIS:
+✅ [amazon_products template="cards"] - Cards informativos
+✅ [amazon_products template="grid"] - Grid simples
+✅ [amazon_products template="list"] - Lista vertical
 
-Este novo sistema é muito mais confiável e não causará problemas no site.
+PARA INFORMAÇÕES COMPLETAS:
+[amazon_product_details product_id="123"] - Shortcode com TODAS as informações
+
+Este sistema é estável, responsivo e não causa problemas no site.
