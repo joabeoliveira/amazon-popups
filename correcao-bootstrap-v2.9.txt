@@ -113,3 +113,5 @@ Esta correção resolve definitivamente o problema de carregamento do Bootstrap,
 4. Confirmar layout responsivo perfeito
 
 O carrossel agora é 100% confiável! ✨
+
+novamente
