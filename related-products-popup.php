@@ -22,6 +22,9 @@ class AmazonAffiliatePopup {
         
         // Adiciona metabox para termos do glossário
         add_action('add_meta_boxes', array($this, 'add_glossary_meta_boxes'));
+        
+        // Inicializa o plugin
+        add_action('plugins_loaded', array($this, 'init'));
     }
     
     public function init() {
@@ -73,7 +76,7 @@ class AmazonAffiliatePopup {
             'manage_options',
             'amazon_affiliate_popup',
             array($this, 'options_page'),
-            'dicons-cart',
+            'dashicons-cart',
             30
         );
 
@@ -1689,7 +1692,8 @@ public function register_custom_post_types() {
         'menu_icon' => 'dashicons-book-alt',
         'supports' => array('title', 'editor', 'thumbnail'),
         'rewrite' => array('slug' => 'glossario'),
-        'show_in_rest' => true
+        'show_in_rest' => true,
+        'show_in_menu' => 'amazon_affiliate_popup'
     ));
     
     // Custom post type para campanhas
@@ -1710,7 +1714,8 @@ public function register_custom_post_types() {
         'show_ui' => true,
         'menu_icon' => 'dashicons-megaphone',
         'supports' => array('title', 'editor'),
-        'show_in_rest' => true
+        'show_in_rest' => true,
+        'show_in_menu' => 'amazon_affiliate_popup'
     ));
 }
 
@@ -1916,7 +1921,21 @@ public function save_meta_box_data($post_id, $post) {
 } // Fecha a classe AmazonAffiliatePopup
 
 // Inicializa o plugin
-new AmazonAffiliatePopup();
+$amazon_affiliate_popup = new AmazonAffiliatePopup();
+
+// Hook de ativação
+register_activation_hook(__FILE__, 'amazon_affiliate_activation');
+function amazon_affiliate_activation() {
+    // Força o WordPress a reescrever as URLs
+    flush_rewrite_rules();
+}
+
+// Hook de desativação
+register_deactivation_hook(__FILE__, 'amazon_affiliate_deactivation');
+function amazon_affiliate_deactivation() {
+    // Limpa as URLs reescritas
+    flush_rewrite_rules();
+}
 
 // AJAX para verificar todos os produtos
 add_action('wp_ajax_scan_all_amazon_products', 'scan_all_amazon_products_callback');
