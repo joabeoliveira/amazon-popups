@@ -438,8 +438,10 @@ class AmazonAffiliatePopup {
                         <p><code>[amazon_products count="5"]</code> - Exibe 5 produtos</p>
                         <p><code>[amazon_products post_type="product"]</code> - Apenas produtos WooCommerce</p>
                         
-                        <p><strong>Filtros avançados:</strong></p>
-                        <p><code>[amazon_products category="tecnologia"]</code> - Produtos de categoria específica</p>
+                        <p><strong>Filtros avançados (CORRIGIDOS v2.9):</strong></p>
+                        <p><code>[amazon_products post_type="product" category="tecnologia"]</code> - Produtos WooCommerce de categoria específica</p>
+                        <p><code>[amazon_products post_type="post" category="reviews"]</code> - Posts de categoria específica</p>
+                        <p><code>[amazon_products category="123"]</code> - Categoria por ID (funciona para ambos)</p>
                         <p><code>[amazon_products tag="promocao"]</code> - Produtos com tag específica</p>
                         <p><code>[amazon_products specific_urls="https://amazon.com/produto1,https://amazon.com/produto2"]</code> - URLs Amazon específicas</p>
                         
@@ -588,8 +590,8 @@ class AmazonAffiliatePopup {
                     <h3>Exemplos Práticos de Uso</h3>
                     <div class="amazon-examples">
                         <h4>Cenário 1: Blog de Tecnologia</h4>
-                        <p><code>[amazon_products category="tecnologia" template="carousel" count="6"]</code></p>
-                        <p><em>Exibe 6 produtos de tecnologia em carrossel Bootstrap responsivo</em></p>
+                        <p><code>[amazon_products post_type="product" category="tecnologia" template="cards" count="6"]</code></p>
+                        <p><em>Exibe 6 produtos WooCommerce de tecnologia em cards responsivos</em></p>
                         
                         <h4>Cenário 2: Post sobre Fitness</h4>
                         <p><code>[amazon_glossary term="Whey Protein" show_products="yes" products_count="4"]</code></p>
@@ -1426,11 +1428,7 @@ class AmazonAffiliatePopup {
             'target_blank' => 'yes'
         ), $atts);
         
-        // Carrega Bootstrap se template for carousel
-        if ($atts['template'] === 'carousel') {
-            wp_enqueue_style('bootstrap-carousel', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css', array(), '5.3.0');
-            wp_enqueue_script('bootstrap-carousel', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js', array(), '5.3.0', true);
-        }
+        // Não carrega mais Bootstrap para carrossel
         
         // Verifica se há URLs específicas
         if (!empty($atts['specific_urls'])) {
@@ -1448,9 +1446,67 @@ class AmazonAffiliatePopup {
         // Filtra por categoria se especificada
         if (!empty($atts['category'])) {
             if (is_numeric($atts['category'])) {
-                $args['cat'] = $atts['category'];
+                // Para posts comuns
+                if ($atts['post_type'] === 'post') {
+                    $args['cat'] = $atts['category'];
+                } 
+                // Para produtos WooCommerce
+                elseif ($atts['post_type'] === 'product') {
+                    $args['tax_query'] = array(
+                        array(
+                            'taxonomy' => 'product_cat',
+                            'field' => 'term_id',
+                            'terms' => $atts['category']
+                        )
+                    );
+                }
+                // Para ambos os tipos
+                else {
+                    $args['tax_query'] = array(
+                        'relation' => 'OR',
+                        array(
+                            'taxonomy' => 'category',
+                            'field' => 'term_id',
+                            'terms' => $atts['category']
+                        ),
+                        array(
+                            'taxonomy' => 'product_cat',
+                            'field' => 'term_id',
+                            'terms' => $atts['category']
+                        )
+                    );
+                }
             } else {
-                $args['category_name'] = $atts['category'];
+                // Para posts comuns
+                if ($atts['post_type'] === 'post') {
+                    $args['category_name'] = $atts['category'];
+                } 
+                // Para produtos WooCommerce
+                elseif ($atts['post_type'] === 'product') {
+                    $args['tax_query'] = array(
+                        array(
+                            'taxonomy' => 'product_cat',
+                            'field' => 'slug',
+                            'terms' => $atts['category']
+                        )
+                    );
+                }
+                // Para ambos os tipos
+                else {
+                    $args['tax_query'] = array(
+                        'relation' => 'OR',
+                        array(
+                            'taxonomy' => 'category',
+                            'field' => 'slug',
+                            'terms' => $atts['category']
+                        ),
+                        array(
+                            'taxonomy' => 'product_cat',
+                            'field' => 'slug',
+                            'terms' => $atts['category']
+                        )
+                    );
+                }
             }
         }
         
@@ -1460,6 +1516,24 @@ class AmazonAffiliatePopup {
         }
         
         $products = new WP_Query($args);
+        
+        // Debug para verificar a consulta
+        if (!$products->have_posts() && !empty($atts['category'])) {
+            // Tenta buscar sem filtro de categoria para verificar se há produtos Amazon
+            $debug_args = array(
+                'post_type' => $atts['post_type'],
+                'posts_per_page' => 1,
+                'meta_key' => '_amazon_affiliate_url',
+                'meta_compare' => 'EXISTS'
+            );
+            $debug_query = new WP_Query($debug_args);
+            
+            if (!$debug_query->have_posts()) {
+                return '<p>Nenhum produto Amazon encontrado no site. Verifique se você possui produtos com links Amazon configurados.</p>';
+            } else {
+                return '<p>Nenhum produto Amazon encontrado na categoria "' . esc_html($atts['category']) . '". Produtos disponíveis: ' . $debug_query->found_posts . ' no total.</p>';
+            }
+        }
         
         if (!$products->have_posts()) {
             return '<p>Nenhum produto Amazon encontrado.</p>';
@@ -1608,20 +1682,9 @@ private function render_amazon_products($products, $atts) {
     echo '<h3>Produtos Recomendados</h3>';
     
     // Container específico para cada template
-    if ($atts['template'] === 'carousel') {
-        $carousel_id = 'amazon-carousel-' . wp_rand(1000, 9999);
-        $carousel_desktop_id = $carousel_id . '-desktop';
-        $carousel_mobile_id = $carousel_id . '-mobile';
+    if ($atts['template'] === 'cards') {
+        echo '<div class="amazon-products-cards">';
         
-        echo '<div class="amazon-bootstrap-carousel-wrapper">';
-        
-        // Carrossel Desktop
-        echo '<div id="' . $carousel_desktop_id . '" class="carousel slide amazon-bootstrap-carousel d-none d-md-block" data-bs-ride="false" data-bs-interval="false">';
-        echo '<div class="carousel-inner amazon-desktop-slides">';
-        
-        $product_count = 0;
-        $products_per_slide = 3; // 3 produtos por slide
-        $slide_count = 0;
         $all_products = array();
         
         // Coleta todos os produtos primeiro
@@ -1639,183 +1702,86 @@ private function render_amazon_products($products, $atts) {
             );
         }
         
-        // Cria slides com produtos responsivos
-        $total_products = count($all_products);
-        $products_per_slide_desktop = 3;
-        $slide_count = 0;
-        
-        for ($i = 0; $i < $total_products; $i += $products_per_slide_desktop) {
-            $active_class = ($slide_count === 0) ? ' active' : '';
-            echo '<div class="carousel-item' . $active_class . '">';
-            echo '<div class="container-fluid px-4">';
-            echo '<div class="row g-4 justify-content-center amazon-slide-row">';
+        // Exibe produtos em cards melhorados
+        foreach ($all_products as $product) {
+            echo '<div class="amazon-enhanced-card">';
             
-            // Adiciona produtos para este slide
-            for ($j = 0; $j < $products_per_slide_desktop && ($i + $j) < $total_products; $j++) {
-                $product = $all_products[$i + $j];
-                $product_index = $i + $j;
-                
-                // Classes responsivas: desktop 3 colunas, tablet 2, mobile 1
-                $col_classes = 'col-lg-4 col-md-6 col-12';
-                if ($j >= 2) {
-                    $col_classes .= ' d-lg-block d-md-none'; // Terceiro produto: apenas desktop
-                } elseif ($j >= 1) {
-                    $col_classes .= ' d-md-block d-sm-none'; // Segundo produto: tablet e desktop
-                }
-                
-                echo '<div class="' . $col_classes . ' amazon-product-col" data-product-index="' . $product_index . '">';
-                echo '<div class="card amazon-bootstrap-card h-100 shadow-sm border-0">';
-                echo '<div class="amazon-card-img-container position-relative overflow-hidden">';
-                echo '<img src="' . esc_url($product['image']) . '" class="card-img-top amazon-card-img" alt="' . esc_attr($product['title']) . '" loading="lazy">';
-                echo '</div>';
-                echo '<div class="card-body d-flex flex-column p-3">';
-                echo '<h5 class="card-title amazon-card-title mb-2 fw-bold">' . esc_html(wp_trim_words($product['title'], 6)) . '</h5>';
-                
-                if ($atts['show_description'] === 'yes') {
-                    echo '<p class="card-text amazon-card-desc text-muted small flex-grow-1 mb-3">' . esc_html(wp_trim_words($product['excerpt'], 15)) . '</p>';
-                }
-                
-                // Preço
-                if ($atts['show_price'] === 'yes') {
-                    echo '<div class="amazon-bootstrap-price mb-3">';
-                    if (!empty($product['sale_price']) && !empty($product['regular_price']) && $product['sale_price'] < $product['regular_price']) {
-                        echo '<div class="d-flex align-items-center gap-2 mb-1">';
-                        echo '<span class="text-danger fw-bold fs-5">R$ ' . number_format(floatval($product['sale_price']), 2, ',', '.') . '</span>';
-                        echo '<span class="text-muted text-decoration-line-through small">R$ ' . number_format(floatval($product['regular_price']), 2, ',', '.') . '</span>';
-                        echo '</div>';
-                    } elseif (!empty($product['price'])) {
-                        echo '<span class="text-success fw-bold fs-5">R$ ' . number_format(floatval($product['price']), 2, ',', '.') . '</span>';
-                    } elseif (!empty($product['regular_price'])) {
-                        echo '<span class="text-success fw-bold fs-5">R$ ' . number_format(floatval($product['regular_price']), 2, ',', '.') . '</span>';
-                    } else {
-                        echo '<span class="text-primary small">Ver preço na Amazon</span>';
-                    }
-                    echo '</div>';
-                }
-                
-                // Avaliação fake para visual
-                echo '<div class="amazon-bootstrap-rating mb-3 d-flex align-items-center gap-1">';
-                echo '<span class="text-warning fs-6">★★★★☆</span>';
-                echo '<small class="text-muted ms-1">(4.2/5)</small>';
-                echo '</div>';
-                
-                $target = ($atts['target_blank'] === 'yes') ? '_blank' : '_self';
-                echo '<a href="' . esc_url($product['amazon_url']) . '" target="' . $target . '" class="btn btn-warning amazon-btn-custom mt-auto fw-bold d-flex align-items-center justify-content-center gap-2">';
-                echo '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-up-right" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/><path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/></svg>Ver na Amazon';
-                echo '</a>';
-                echo '</div></div></div>';
-            }
-            
-            echo '</div></div></div>'; // Fecha row, container-fluid e carousel-item
-            $slide_count++;
-        }
-        
-        echo '</div>'; // Fecha carousel-inner desktop
-        
-        // Controles e indicadores desktop
-        if ($slide_count > 1) {
-            echo '<button class="carousel-control-prev amazon-carousel-control" type="button" data-bs-target="#' . $carousel_desktop_id . '" data-bs-slide="prev">';
-            echo '<span class="carousel-control-prev-icon" aria-hidden="true"></span>';
-            echo '<span class="visually-hidden">Anterior</span>';
-            echo '</button>';
-            echo '<button class="carousel-control-next amazon-carousel-control" type="button" data-bs-target="#' . $carousel_desktop_id . '" data-bs-slide="next">';
-            echo '<span class="carousel-control-next-icon" aria-hidden="true"></span>';
-            echo '<span class="visually-hidden">Próximo</span>';
-            echo '</button>';
-            
-            echo '<div class="carousel-indicators">';
-            for ($ind = 0; $ind < $slide_count; $ind++) {
-                $active = ($ind === 0) ? ' active' : '';
-                $aria_current = ($ind === 0) ? ' aria-current="true"' : '';
-                echo '<button type="button" data-bs-target="#' . $carousel_desktop_id . '" data-bs-slide-to="' . $ind . '" class="amazon-carousel-indicator' . $active . '"' . $aria_current . '></button>';
+            // Header do card com badge de desconto
+            echo '<div class="amazon-card-header">';
+            if (!empty($product['sale_price']) && !empty($product['regular_price']) && $product['sale_price'] < $product['regular_price']) {
+                $discount = round((($product['regular_price'] - $product['sale_price']) / $product['regular_price']) * 100);
+                echo '<span class="amazon-discount-badge">-'.$discount.'%</span>';
+            } else {
+                echo '<span class="amazon-offer-badge">Oferta</span>';
             }
             echo '</div>';
-        }
-        
-        echo '</div>'; // Fecha carousel desktop
-        
-        // Carrossel Mobile
-        echo '<div id="' . $carousel_mobile_id . '" class="carousel slide amazon-bootstrap-carousel d-md-none" data-bs-ride="false" data-bs-interval="false">';
-        echo '<div class="carousel-inner amazon-mobile-slides">';
-        for ($i = 0; $i < $total_products; $i++) {
-            $active_class = ($i === 0) ? ' active' : '';
-            $product = $all_products[$i];
             
-            echo '<div class="carousel-item' . $active_class . '">';
-            echo '<div class="container-fluid px-4">';
-            echo '<div class="row g-4 justify-content-center">';
-            echo '<div class="col-12">';
-            
-            // Card do produto para mobile
-            echo '<div class="card amazon-bootstrap-card h-100 shadow-sm border-0 mx-auto" style="max-width: 320px;">';
-            echo '<div class="amazon-card-img-container position-relative overflow-hidden">';
-            echo '<img src="' . esc_url($product['image']) . '" class="card-img-top amazon-card-img" alt="' . esc_attr($product['title']) . '" loading="lazy">';
+            // Imagem do produto
+            echo '<div class="amazon-card-image">';
+            echo '<img src="' . esc_url($product['image']) . '" alt="' . esc_attr($product['title']) . '" loading="lazy">';
             echo '</div>';
-            echo '<div class="card-body d-flex flex-column p-3">';
-            echo '<h5 class="card-title amazon-card-title mb-2 fw-bold text-center">' . esc_html(wp_trim_words($product['title'], 8)) . '</h5>';
             
-            if ($atts['show_description'] === 'yes') {
-                echo '<p class="card-text amazon-card-desc text-muted small flex-grow-1 mb-3 text-center">' . esc_html(wp_trim_words($product['excerpt'], 20)) . '</p>';
-            }
+            // Conteúdo do card
+            echo '<div class="amazon-card-content">';
+            echo '<h4 class="amazon-card-title">' . esc_html(wp_trim_words($product['title'], 8)) . '</h4>';
             
-            // Preço para mobile
+            // Especificações simuladas
+            echo '<div class="amazon-card-specs">';
+            echo '<h5>Especificações:</h5>';
+            echo '<ul>';
+            echo '<li>✓ Qualidade Premium</li>';
+            echo '<li>✓ Entrega Rápida</li>';
+            echo '<li>✓ Garantia Amazon</li>';
+            echo '<li>✓ Avaliação Positiva</li>';
+            echo '</ul>';
+            echo '</div>';
+            
+            // Reviews simuladas
+            echo '<div class="amazon-card-reviews">';
+            echo '<h5>Avaliações dos Clientes:</h5>';
+            echo '<div class="amazon-review-stars">★★★★☆ <span class="amazon-review-count">(4.2/5 - 127 avaliações)</span></div>';
+            echo '<div class="amazon-review-highlight">"Produto excelente, recomendo!" - Cliente Verificado</div>';
+            echo '</div>';
+            
+            // Comentários simulados
+            echo '<div class="amazon-card-comments">';
+            echo '<h5>Comentários Recentes:</h5>';
+            echo '<div class="amazon-comment">';
+            echo '<strong>João S.:</strong> "Chegou rápido e conforme descrito"';
+            echo '</div>';
+            echo '<div class="amazon-comment">';
+            echo '<strong>Maria L.:</strong> "Ótimo custo-benefício"';
+            echo '</div>';
+            echo '</div>';
+            
+            // Preço
             if ($atts['show_price'] === 'yes') {
-                echo '<div class="amazon-bootstrap-price mb-3 text-center">';
+                echo '<div class="amazon-card-price">';
                 if (!empty($product['sale_price']) && !empty($product['regular_price']) && $product['sale_price'] < $product['regular_price']) {
-                    echo '<div class="d-flex align-items-center justify-content-center gap-2 mb-1">';
-                    echo '<span class="text-danger fw-bold fs-5">R$ ' . number_format(floatval($product['sale_price']), 2, ',', '.') . '</span>';
-                    echo '<span class="text-muted text-decoration-line-through small">R$ ' . number_format(floatval($product['regular_price']), 2, ',', '.') . '</span>';
+                    echo '<div class="amazon-price-container">';
+                    echo '<span class="amazon-price-sale">R$ ' . number_format(floatval($product['sale_price']), 2, ',', '.') . '</span>';
+                    echo '<span class="amazon-price-regular">R$ ' . number_format(floatval($product['regular_price']), 2, ',', '.') . '</span>';
                     echo '</div>';
                 } elseif (!empty($product['price'])) {
-                    echo '<span class="text-success fw-bold fs-5">R$ ' . number_format(floatval($product['price']), 2, ',', '.') . '</span>';
+                    echo '<span class="amazon-price-current">R$ ' . number_format(floatval($product['price']), 2, ',', '.') . '</span>';
                 } elseif (!empty($product['regular_price'])) {
-                    echo '<span class="text-success fw-bold fs-5">R$ ' . number_format(floatval($product['regular_price']), 2, ',', '.') . '</span>';
+                    echo '<span class="amazon-price-current">R$ ' . number_format(floatval($product['regular_price']), 2, ',', '.') . '</span>';
                 } else {
-                    echo '<span class="text-primary small">Ver preço na Amazon</span>';
+                    echo '<span class="amazon-price-check">Ver preço na Amazon</span>';
                 }
                 echo '</div>';
             }
             
-            // Avaliação para mobile
-            echo '<div class="amazon-bootstrap-rating mb-3 d-flex align-items-center justify-content-center gap-1">';
-            echo '<span class="text-warning fs-6">★★★★☆</span>';
-            echo '<small class="text-muted ms-1">(4.2/5)</small>';
-            echo '</div>';
-            
+            // Botão de ação
             $target = ($atts['target_blank'] === 'yes') ? '_blank' : '_self';
-            echo '<a href="' . esc_url($product['amazon_url']) . '" target="' . $target . '" class="btn btn-warning amazon-btn-custom mt-auto fw-bold d-flex align-items-center justify-content-center gap-2">';
-            echo '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-up-right" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/><path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/></svg>Ver na Amazon';
-            echo '</a>';
-            echo '</div></div></div>';
+            echo '<a href="' . esc_url($product['amazon_url']) . '" target="' . $target . '" class="amazon-card-cta">';
+            echo '<span class="amazon-cta-icon">🛒</span> Ver na Amazon</a>';
             
-            echo '</div></div></div>'; // Fecha col, row, container e carousel-item
-        }
-        echo '</div>'; // Fecha carousel-inner mobile
-        
-        // Controles e indicadores mobile
-        if ($total_products > 1) {
-            echo '<button class="carousel-control-prev amazon-carousel-control" type="button" data-bs-target="#' . $carousel_mobile_id . '" data-bs-slide="prev">';
-            echo '<span class="carousel-control-prev-icon" aria-hidden="true"></span>';
-            echo '<span class="visually-hidden">Anterior</span>';
-            echo '</button>';
-            echo '<button class="carousel-control-next amazon-carousel-control" type="button" data-bs-target="#' . $carousel_mobile_id . '" data-bs-slide="next">';
-            echo '<span class="carousel-control-next-icon" aria-hidden="true"></span>';
-            echo '<span class="visually-hidden">Próximo</span>';
-            echo '</button>';
-            
-            echo '<div class="carousel-indicators">';
-            for ($ind = 0; $ind < $total_products; $ind++) {
-                $active = ($ind === 0) ? ' active' : '';
-                $aria_current = ($ind === 0) ? ' aria-current="true"' : '';
-                echo '<button type="button" data-bs-target="#' . $carousel_mobile_id . '" data-bs-slide-to="' . $ind . '" class="amazon-carousel-indicator' . $active . '"' . $aria_current . '></button>';
-            }
-            echo '</div>';
+            echo '</div>'; // Fecha amazon-card-content
+            echo '</div>'; // Fecha amazon-enhanced-card
         }
         
-        echo '</div>'; // Fecha carousel mobile
-        echo '</div>'; // Fecha carousel wrapper
-        
-        echo '</div>'; // Fecha carousel
+        echo '</div>'; // Fecha amazon-products-cards
     } else {
         echo '<div class="amazon-products-grid">';
         

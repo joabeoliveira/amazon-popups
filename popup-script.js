@@ -245,60 +245,10 @@ jQuery(document).ready(function($) {
     });
     
     // ============================================
-    // === FUNCIONALIDADE DO CARROSSEL ===
+    // === FUNCIONALIDADE REMOVIDA - CARROSSEL ===
     // ============================================
     
-    // Carrossel Bootstrap - configuração aprimorada para ambas as versões
-    $('.amazon-bootstrap-carousel').each(function() {
-        var $carousel = $(this);
-        
-        // Remove atributos de autoplay
-        $carousel.removeAttr('data-bs-ride');
-        $carousel.attr('data-bs-interval', 'false');
-        $carousel.attr('data-bs-pause', 'true');
-        $carousel.attr('data-bs-wrap', 'true');
-        
-        // Adiciona atributos de acessibilidade
-        $carousel.attr('role', 'region');
-        $carousel.attr('aria-label', 'Carrossel de produtos Amazon');
-        
-        // Debug para verificar se o carrossel foi encontrado
-        console.log('Carrossel encontrado:', $carousel.attr('id'));
-        
-        // Inicializa o carrossel Bootstrap manualmente
-        if (typeof bootstrap !== 'undefined' && bootstrap.Carousel) {
-            try {
-                var bsCarousel = new bootstrap.Carousel($carousel[0], {
-                    interval: false,
-                    ride: false,
-                    pause: true,
-                    wrap: true
-                });
-                
-                // Força pausa imediata
-                bsCarousel.pause();
-                
-                console.log('Bootstrap Carousel inicializado para:', $carousel.attr('id'));
-            } catch (e) {
-                console.log('Erro ao inicializar Bootstrap Carousel:', e);
-            }
-        }
-        
-        // Previne cliques duplos nos controles
-        var isTransitioning = false;
-        $carousel.find('.carousel-control-prev, .carousel-control-next').on('click', function(e) {
-            if (isTransitioning) {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            }
-            
-            isTransitioning = true;
-            console.log('Navegação do carrossel:', $(this).hasClass('carousel-control-prev') ? 'Anterior' : 'Próximo');
-            
-            setTimeout(function() {
-                isTransitioning = false;
-            }, 1000); // Tempo aumentado para evitar cliques rápidos
-        });
-    });
+    // Carrossel Bootstrap foi removido para evitar conflitos
+    // Substituído por cards simples que funcionam melhor
+    console.log('Amazon Plugin: Funcionalidade de carrossel removida');
 });

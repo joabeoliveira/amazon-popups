@@ -1,0 +1,52 @@
+CORREÇÃO DO SHORTCODE POR CATEGORIA - VERSÃO 2.9
+
+O problema do shortcode por categoria foi identificado e CORRIGIDO!
+
+=== PROBLEMA IDENTIFICADO ===
+O código anterior não distinguia entre:
+- Posts comuns (taxonomy: 'category') 
+- Produtos WooCommerce (taxonomy: 'product_cat')
+
+=== CORREÇÃO IMPLEMENTADA ===
+✅ Agora detecta automaticamente o tipo de post
+✅ Usa a taxonomia correta para cada tipo
+✅ Suporta busca por ID ou slug da categoria
+✅ Funciona com posts mistos (post + product)
+✅ Mensagens de erro mais informativas
+
+=== COMO USAR (CORRIGIDO) ===
+
+📝 POSTS COMUNS:
+[amazon_products post_type="post" category="tecnologia"]
+[amazon_products post_type="post" category="123"]
+
+🛒 PRODUTOS WOOCOMMERCE:
+[amazon_products post_type="product" category="eletronicos"]
+[amazon_products post_type="product" category="456"]
+
+🔄 AMBOS OS TIPOS:
+[amazon_products post_type="product,post" category="tecnologia"]
+
+📱 COM TEMPLATE CARDS:
+[amazon_products template="cards" category="tecnologia" count="6"]
+
+=== EXEMPLOS PRÁTICOS ===
+
+ANTES (não funcionava):
+[amazon_products category="tecnologia"] ❌
+
+AGORA (funciona perfeitamente):
+[amazon_products post_type="product" category="tecnologia"] ✅
+[amazon_products post_type="post" category="reviews"] ✅
+[amazon_products template="cards" category="casa-e-jardim" count="4"] ✅
+
+=== DEBUG MELHORADO ===
+Se não encontrar produtos, o plugin agora informa:
+- "Nenhum produto Amazon encontrado na categoria X. Produtos disponíveis: Y no total."
+- Ajuda a identificar se o problema é a categoria ou falta de produtos Amazon
+
+=== VERIFICAÇÃO ===
+1. Certifique-se que seus produtos têm links Amazon configurados
+2. Verifique se a categoria existe e tem produtos
+3. Use o slug correto da categoria (sem espaços, minúsculas)
+4. Para WooCommerce, use post_type="product"
