@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
+  <rect width="300" height="200" fill="#f0f0f0"/>
+  <rect x="50" y="50" width="200" height="100" fill="#FF9900" rx="10"/>
+  <text x="150" y="85" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">Produto</text>
+  <text x="150" y="105" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">Amazon</text>
+  <text x="150" y="125" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12">🛒</text>
+</svg>

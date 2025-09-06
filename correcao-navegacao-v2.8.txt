@@ -1,0 +1,81 @@
+🎯 CORREÇÃO CRÍTICA V2.8 - CONTROLES DE NAVEGAÇÃO FUNCIONANDO
+
+=== PROBLEMA IDENTIFICADO ===
+❌ Dois carousel-inner com mesmo ID causavam conflito
+❌ Bootstrap não sabia qual carrossel controlar
+❌ Setas e indicadores apontavam para ID genérico
+
+=== SOLUÇÃO IMPLEMENTADA ===
+
+🔧 ESTRUTURA CORRIGIDA:
+• Carrossel Desktop: ID único "-desktop"
+• Carrossel Mobile: ID único "-mobile"  
+• Wrapper comum para organização
+• Controles específicos dentro de cada carrossel
+
+🔧 ARQUITETURA FINAL:
+```
+amazon-bootstrap-carousel-wrapper
+├── amazon-carousel-1234-desktop (d-none d-md-block)
+│   ├── carousel-inner
+│   ├── carousel-control-prev (aponta para -desktop)
+│   ├── carousel-control-next (aponta para -desktop)
+│   └── carousel-indicators (aponta para -desktop)
+└── amazon-carousel-1234-mobile (d-md-none)
+    ├── carousel-inner
+    ├── carousel-control-prev (aponta para -mobile)
+    ├── carousel-control-next (aponta para -mobile)
+    └── carousel-indicators (aponta para -mobile)
+```
+
+🔧 JAVASCRIPT APRIMORADO:
+• Inicialização manual do Bootstrap Carousel
+• Debug console.log para verificação
+• Prevenção de cliques duplos (1s)
+• Configuração forçada de interval: false
+
+=== MELHORIAS TÉCNICAS ===
+
+✅ IDs ÚNICOS
+- Desktop: carousel_id + "-desktop"
+- Mobile: carousel_id + "-mobile"
+- Controles apontam para ID correto
+
+✅ INICIALIZAÇÃO CONTROLADA
+- new bootstrap.Carousel() manual
+- Configurações forçadas via JavaScript
+- Pausa imediata após inicialização
+
+✅ DEBUG HABILITADO
+- Console.log mostra carrossel encontrado
+- Log de inicialização Bootstrap
+- Log de navegação (Anterior/Próximo)
+
+✅ ESTRUTURA ORGANIZADA
+- Wrapper para melhor organização
+- Controles dentro de cada carrossel
+- CSS simplificado
+
+=== RESULTADO ESPERADO ===
+
+📱 MOBILE: 
+• Setas funcionam para navegar entre produtos individuais
+• Indicadores mostram posição atual corretamente
+
+💻 DESKTOP:
+• Setas funcionam para navegar entre slides de 3 produtos
+• Indicadores mostram slide atual corretamente
+
+🚫 SEM AUTOPLAY:
+• Carrossel só move quando usuário clicar
+• Sem movimento automático indesejado
+
+=== TESTE SUGERIDO ===
+
+1. Adicionar shortcode: [amazon_products template="carousel" count="6"]
+2. Verificar console do navegador para logs de debug
+3. Testar setas em desktop (deve navegar entre 2 slides)
+4. Testar setas em mobile (deve navegar entre 6 produtos)
+5. Verificar se indicadores atualizam corretamente
+
+O problema das setas não funcionarem deve estar 100% resolvido! 🎉

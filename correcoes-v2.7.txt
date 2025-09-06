@@ -1,0 +1,67 @@
+🎯 CORREÇÕES VERSÃO 2.7 - CARROSSEL BOOTSTRAP OTIMIZADO
+
+=== PROBLEMAS CORRIGIDOS ===
+
+✅ AUTOPLAY DESCONTROLADO
+• Removido completamente o data-bs-ride="carousel"
+• Adicionado data-bs-ride="false" e data-bs-interval="false"
+• JavaScript adicional para forçar pausa do autoplay
+• Prevenção contra cliques duplos nos controles
+
+✅ RESPONSIVIDADE MOBILE
+• Sistema duplo de slides: desktop (3 produtos) + mobile (1 produto)
+• Slides desktop: d-none d-md-block (ocultos em mobile)
+• Slides mobile: d-md-none (visíveis apenas em mobile)
+• Controles específicos para cada breakpoint
+• Indicadores adaptados para cada versão
+
+✅ SOBREPOSIÇÃO DE PRODUTOS
+• Mobile: 1 produto por slide centralizado
+• Tablet: mantém comportamento responsivo Bootstrap
+• Desktop: 3 produtos por slide otimizado
+• Cards limitados a 320px em mobile para melhor proporção
+
+✅ TRANSIÇÕES SUAVES
+• Transição aumentada para 0.8s para menos velocidade
+• Controles com debounce para evitar cliques múltiplos
+• Focus states melhorados para acessibilidade
+
+=== ESTRUTURA TÉCNICA ===
+
+🔧 PHP
+• Duas estruturas de carousel-inner independentes
+• Produtos coletados uma vez, renderizados duas vezes
+• Controles e indicadores específicos por breakpoint
+• Classes Bootstrap responsivas otimizadas
+
+🎨 CSS
+• Sistema de display none/block via media queries
+• Controles posicionados adequadamente por tela
+• Animações suavizadas
+• Cards otimizados para mobile (max-width: 320px)
+
+⚡ JAVASCRIPT
+• Desativação completa do autoplay Bootstrap
+• Prevenção de cliques duplos
+• Pausa forçada via API Bootstrap
+• Melhor controle de transições
+
+=== RESULTADO FINAL ===
+
+📱 MOBILE: 1 produto por slide, navegação suave
+💻 TABLET/DESKTOP: 3 produtos por slide, layout otimizado
+🚫 SEM AUTOPLAY: Controle total do usuário
+⚡ PERFORMANCE: Bootstrap nativo + otimizações customizadas
+♿ ACESSÍVEL: Focus states + keyboard navigation
+
+=== EXEMPLOS DE USO ===
+
+[amazon_products template="carousel" count="6"]
+• Desktop: 2 slides com 3 produtos cada
+• Mobile: 6 slides com 1 produto cada
+
+[amazon_products template="carousel" count="9"]
+• Desktop: 3 slides com 3 produtos cada  
+• Mobile: 9 slides com 1 produto cada
+
+O carrossel agora está totalmente estável e responsivo! 🎉

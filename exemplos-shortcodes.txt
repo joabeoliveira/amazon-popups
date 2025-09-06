@@ -1,0 +1,45 @@
+EXEMPLOS SIMPLES DE SHORTCODES - VERSÃO 2.6 COM BOOTSTRAP CAROUSEL 🚀
+
+=== CARROSSEL BOOTSTRAP (NOVO!) ===
+[amazon_products template="carousel" count="9"]
+• Exibe 9 produtos em carrossel profissional Bootstrap
+• 3 produtos por slide com navegação suave
+• Totalmente responsivo e acessível
+
+[amazon_products category="tecnologia" template="carousel" count="6"]
+• Carrossel com produtos da categoria "tecnologia"
+• Layout premium com animações
+
+=== LAYOUTS TRADICIONAIS ===
+[amazon_products template="grid" count="6"]
+• Grade padrão com 6 produtos
+
+[amazon_products template="list" count="4"]
+• Lista horizontal com scroll
+
+=== PRODUTOS ESPECÍFICOS ===
+[amazon_products specific_urls="https://amazon.com/produto1,https://amazon.com/produto2" template="carousel"]
+• Carrossel com produtos específicos por URL
+
+=== BANNERS PROMOCIONAIS ===
+[amazon_banner product_id="123" type="horizontal" title="Oferta Especial"]
+• Banner horizontal promocional
+
+[amazon_banner product_id="456" type="vertical" background_color="#FF0000" text_color="#FFFFFF"]
+• Banner vertical customizado
+
+=== GLOSSÁRIO INTELIGENTE ===
+[amazon_glossary term="Smartphone" show_products="yes" products_count="3"]
+• Define o termo e mostra produtos relacionados
+
+=== CAMPANHAS PROGRAMADAS ===
+[amazon_campaign campaign_id="789"]
+• Exibe campanha específica por ID
+
+=== DICAS DE USO ===
+✅ Use múltiplos de 3 no count para carrossel (3, 6, 9, 12...)
+✅ Carrossel funciona melhor com count="6" ou count="9"
+✅ Bootstrap carregado automaticamente quando template="carousel"
+✅ Todos os shortcodes são responsivos e acessíveis
+
+🆕 NOVO NA V2.6: Carrossel Bootstrap nativo com performance superior!

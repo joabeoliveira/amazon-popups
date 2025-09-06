@@ -1,9 +1,34 @@
 jQuery(document).ready(function($) {
+    console.log('Amazon Popup Admin Scripts - Versão 2.6 carregado com sucesso');
+    
+    // Verifica se as variáveis estão disponíveis
+    if (typeof amazon_affiliate_admin === 'undefined') {
+        console.error('amazon_affiliate_admin não está definido!');
+        return;
+    }
+    
+    // Verifica se ajaxurl está disponível
+    if (typeof ajaxurl === 'undefined') {
+        console.error('ajaxurl não está definido!');
+        return;
+    }
     // Adiciona funcionalidade ao botão de verificação
-    $('#scan-all-products').on('click', function() {
+    $(document).on('click', '#scan-all-products', function() {
+        console.log('Botão "Verificar Todos os Conteúdos" clicado');
+        
         var button = $(this);
         button.prop('disabled', true).text('Verificando...');
+        
+        // Verifica se o elemento de resultados existe
+        if ($('#scan-results').length === 0) {
+            console.error('Elemento #scan-results não encontrado!');
+            button.prop('disabled', false).text('Verificar Todos os Conteúdos');
+            return;
+        }
+        
         $('#scan-results').show();
+        
+        console.log('Criando barra de progresso...');
         
         // Cria a barra de progresso
         var progressHtml = '<div class="amazon-scan-progress">' +
@@ -21,6 +46,14 @@ jQuery(document).ready(function($) {
         '</div>';
         
         $('#scan-progress').html(progressHtml);
+        console.log('Barra de progresso inserida no DOM');
+        
+        // Verifica se a barra foi realmente criada
+        if ($('.amazon-scan-progress').length > 0) {
+            console.log('Barra de progresso criada com sucesso!');
+        } else {
+            console.error('Falha ao criar barra de progresso!');
+        }
         
         // Variáveis de controle
         var totalProcessed = 0;
@@ -61,11 +94,14 @@ jQuery(document).ready(function($) {
         checkProducts(0);
         
         function checkProducts(offset) {
+            console.log('Iniciando verificação AJAX - offset:', offset);
+            
             $.post(ajaxurl, {
                 action: 'scan_all_amazon_products',
                 offset: offset,
                 nonce: amazon_affiliate_admin.nonce
             }, function(response) {
+                console.log('Resposta AJAX recebida:', response);
                 if (response.success) {
                     var processed = response.data.batch_size || 10;
                     var found = response.data.processed || 0;
@@ -170,4 +206,30 @@ jQuery(document).ready(function($) {
             }
         });
     });
+    
+    // Forçar limpeza de cache
+    $('#force-cache-clear').on('click', function(e) {
+        e.preventDefault();
+        
+        if (confirm('Isto irá forçar o recarregamento de todos os scripts. Deseja continuar?')) {
+            // Força limpeza de cache adicionando timestamp
+            var timestamp = new Date().getTime();
+            window.location.href = window.location.href + '&cache_clear=' + timestamp;
+        }
+    });
+});
+
+// Adiciona listener para quando a página estiver totalmente carregada
+jQuery(document).ready(function() {
+    console.log('Amazon Popup Admin Scripts carregado - Versão 2.1');
+    
+    // Adiciona indicator visual de que a nova versão está carregada
+    setTimeout(function() {
+        if ($('#scan-all-products').length > 0) {
+            $('#scan-all-products').attr('title', 'Plugin Amazon v2.1 - Nova barra de progresso disponível');
+            console.log('Botão encontrado e marcado com nova versão');
+        } else {
+            console.warn('Botão #scan-all-products não encontrado na página');
+        }
+    }, 1000);
 });

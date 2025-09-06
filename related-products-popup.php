@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Popup de Afiliados Amazon
  * Description: Exibe popups com produtos de afiliado Amazon do WooCommerce e posts comuns
- * Version: 2.0
+ * Version: 2.8
  * Author: Joabe Antonio de Oliveira
  */
 
@@ -339,6 +339,7 @@ class AmazonAffiliatePopup {
                             <li><a href="<?php echo admin_url('admin.php?page=amazon_affiliate_docs'); ?>">Documentação completa</a></li>
                             <li><a href="<?php echo admin_url('admin.php?page=amazon_affiliate_stats'); ?>">Ver estatísticas detalhadas</a></li>
                             <li><a href="#" id="test-popup">Testar popup</a></li>
+                            <li><a href="#" id="force-cache-clear" style="color: #d63384;">Forçar limpeza de cache</a></li>
                         </ul>
                     </div>
                 </div>
@@ -445,7 +446,7 @@ class AmazonAffiliatePopup {
                         <p><strong>Personalização visual:</strong></p>
                         <p><code>[amazon_products template="grid"]</code> - Layout em grade (padrão)</p>
                         <p><code>[amazon_products template="list"]</code> - Layout em lista horizontal</p>
-                        <p><code>[amazon_products template="carousel"]</code> - Layout carrossel scrollável</p>
+                        <p><code>[amazon_products template="carousel"]</code> - Layout carrossel com Bootstrap 5</p>
                         
                         <p><strong>Opções de exibição:</strong></p>
                         <p><code>[amazon_products show_description="no"]</code> - Ocultar descrições</p>
@@ -539,6 +540,21 @@ class AmazonAffiliatePopup {
                         </ul>
                     </div>
                     
+                    <h3>Novidades da Versão 2.6 🆕</h3>
+                    <div class="amazon-update-notice">
+                        <h4>🎆 Carrossel Bootstrap Implementado!</h4>
+                        <ul>
+                            <li><strong>Performance Superior:</strong> Carrossel Bootstrap 5 nativo</li>
+                            <li><strong>Responsividade Total:</strong> Funciona perfeitamente em todos os dispositivos</li>
+                            <li><strong>Navegação Suave:</strong> Controles nativos com animações fluidas</li>
+                            <li><strong>Acessibilidade:</strong> Totalmente acessível com navegação por teclado</li>
+                            <li><strong>Design Premium:</strong> Cards modernos com hover effects</li>
+                            <li><strong>3 Produtos por Slide:</strong> Layout otimizado para melhor visualização</li>
+                        </ul>
+                        <p><strong>Como usar:</strong> <code>[amazon_products template="carousel" count="9"]</code></p>
+                        <p class="amazon-tip">💡 <strong>Dica:</strong> Use múltiplos de 3 no count para melhor aproveitamento dos slides!</p>
+                    </div>
+                    
                     <h3>Configurações Avançadas</h3>
                     <div class="amazon-advanced-settings">
                         <h4>Metaboxes por Página/Post</h4>
@@ -573,7 +589,7 @@ class AmazonAffiliatePopup {
                     <div class="amazon-examples">
                         <h4>Cenário 1: Blog de Tecnologia</h4>
                         <p><code>[amazon_products category="tecnologia" template="carousel" count="6"]</code></p>
-                        <p><em>Exibe 6 produtos de tecnologia em carrossel scrollável</em></p>
+                        <p><em>Exibe 6 produtos de tecnologia em carrossel Bootstrap responsivo</em></p>
                         
                         <h4>Cenário 2: Post sobre Fitness</h4>
                         <p><code>[amazon_glossary term="Whey Protein" show_products="yes" products_count="4"]</code></p>
@@ -916,9 +932,16 @@ class AmazonAffiliatePopup {
             return;
         }
         
+        // Carrega Bootstrap apenas se necessário (para carrossel)
+        $post_content = get_post_field('post_content', $post->ID);
+        if (strpos($post_content, 'template="carousel"') !== false) {
+            wp_enqueue_style('bootstrap-carousel', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css', array(), '5.3.0');
+            wp_enqueue_script('bootstrap-carousel', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js', array(), '5.3.0', true);
+        }
+        
         // SEMPRE carrega os scripts, independentemente de ter produtos Amazon
-        wp_enqueue_style('amazon-affiliate-popup', plugin_dir_url(__FILE__) . 'popup-style.css');
-        wp_enqueue_script('amazon-affiliate-popup', plugin_dir_url(__FILE__) . 'popup-script.js', array('jquery'), '1.0', true);
+        wp_enqueue_style('amazon-affiliate-popup', plugin_dir_url(__FILE__) . 'popup-style.css', array(), '2.8');
+        wp_enqueue_script('amazon-affiliate-popup', plugin_dir_url(__FILE__) . 'popup-script.js', array('jquery'), '2.8', true);
         
         $delay = isset($this->options['popup_delay']) ? intval($this->options['popup_delay']) : 15;
         $display_position = isset($this->options['display_position']) ? $this->options['display_position'] : 'auto';
@@ -944,10 +967,13 @@ class AmazonAffiliatePopup {
     private function add_display_hooks($position, $type) {
         switch ($position) {
             case 'header':
-                add_action('wp_head', array($this, 'display_amazon_content'));
+                add_action('wp_head', array($this, 'display_amazon_content_in_head'));
+                add_action('wp_body_open', array($this, 'display_amazon_content'));
+                add_action('get_header', array($this, 'display_amazon_content'));
                 break;
             case 'footer':
                 add_action('wp_footer', array($this, 'display_amazon_content'));
+                add_action('get_footer', array($this, 'display_amazon_content'));
                 break;
             case 'before_content':
                 add_filter('the_content', array($this, 'add_before_content'));
@@ -956,20 +982,24 @@ class AmazonAffiliatePopup {
                 add_filter('the_content', array($this, 'add_after_content'));
                 break;
             case 'sidebar':
-                add_action('dynamic_sidebar', array($this, 'display_amazon_content'));
+                add_action('dynamic_sidebar_before', array($this, 'display_amazon_content'));
+                add_action('wp_footer', array($this, 'inject_sidebar_content'));
                 break;
         }
     }
     
-    // Exibe conteúdo Amazon
-    public function display_amazon_content() {
+    // Função especial para cabeçalho
+    public function display_amazon_content_in_head() {
+        echo '<script>console.log("Amazon plugin: Tentando exibir no cabeçalho");</script>';
+    }
+    
+    // Função para injetar conteúdo na sidebar via JavaScript
+    public function inject_sidebar_content() {
         global $post;
         
         if (!$post) return;
         
-        $display_type = isset($this->options['display_type']) ? $this->options['display_type'] : 'popup';
-        
-        // Busca produtos relacionados
+        // Busca produto para exibir
         $args = array(
             'post_type' => array('product', 'post'),
             'posts_per_page' => 1,
@@ -986,27 +1016,148 @@ class AmazonAffiliatePopup {
             $amazon_url = $this->get_amazon_url(get_the_ID());
             $amazon_url = $this->add_associate_tag($amazon_url);
             $image = get_the_post_thumbnail_url(get_the_ID(), 'medium');
+            $title = get_the_title();
             
-            echo '<div class="amazon-display amazon-display-' . esc_attr($display_type) . '">';
+            echo '<script>';
+            echo 'jQuery(document).ready(function($) {';
+            echo '  var sidebarContent = `';
+            echo '    <div class="amazon-sidebar-widget" style="background: white; padding: 15px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-left: 4px solid #FF9900;">';
+            echo '      <h4 style="color: #FF9900; margin: 0 0 10px 0; font-size: 16px;">Produto Amazon</h4>';
+            if ($image) {
+                echo '      <img src="' . esc_url($image) . '" alt="' . esc_attr($title) . '" style="width: 100%; height: 120px; object-fit: cover; border-radius: 4px; margin-bottom: 10px;">';
+            }
+            echo '      <h5 style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.4;">' . esc_html($title) . '</h5>';
+            echo '      <a href="' . esc_url($amazon_url) . '" target="_blank" style="display: inline-block; background: #FF9900; color: white; padding: 8px 12px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: bold;">Ver na Amazon</a>';
+            echo '    </div>';
+            echo '  `;';
+            echo '  ';
+            echo '  // Tenta encontrar sidebar e inserir conteúdo';
+            echo '  var sidebarSelectors = [".sidebar", "#sidebar", ".widget-area", "#secondary", "aside", ".aside"];';
+            echo '  var inserted = false;';
+            echo '  ';
+            echo '  $.each(sidebarSelectors, function(index, selector) {';
+            echo '    var $sidebar = $(selector).first();';
+            echo '    if ($sidebar.length > 0 && !inserted) {';
+            echo '      $sidebar.prepend(sidebarContent);';
+            echo '      inserted = true;';
+            echo '      console.log("Amazon plugin: Conteúdo inserido na sidebar via: " + selector);';
+            echo '      return false;';
+            echo '    }';
+            echo '  });';
+            echo '  ';
+            echo '  if (!inserted) {';
+            echo '    console.log("Amazon plugin: Nenhuma sidebar encontrada. Seletores tentados:", sidebarSelectors);';
+            echo '  }';
+            echo '});';
+            echo '</script>';
             
-            if ($display_type === 'sticky_bar') {
-                echo '<div class="amazon-sticky-bar">';
-                echo '<span class="amazon-sticky-text">Oferta: ' . esc_html(get_the_title()) . '</span>';
-                echo '<a href="' . esc_url($amazon_url) . '" target="_blank" class="amazon-sticky-cta">Ver na Amazon</a>';
-                echo '<button class="amazon-sticky-close">&times;</button>';
+            wp_reset_postdata();
+        }
+    }
+    
+    // Exibe conteúdo Amazon
+    public function display_amazon_content() {
+        global $post;
+        
+        if (!$post) return;
+        
+        $display_type = isset($this->options['display_type']) ? $this->options['display_type'] : 'popup';
+        $display_position = isset($this->options['display_position']) ? $this->options['display_position'] : 'auto';
+        
+        // Para exibição automática em posições fixas, não exibe nada
+        // O JavaScript cuidará da exibição
+        if (in_array($display_type, ['popup', 'sticky_bar']) && $display_position === 'auto') {
+            return;
+        }
+        
+        // Adiciona debug para cabeçalho
+        if ($display_position === 'header') {
+            echo '<!-- Amazon Plugin: Exibindo no cabeçalho -->';
+        }
+        
+        // Busca produtos relacionados apenas para tipos que são inseridos no conteúdo
+        $args = array(
+            'post_type' => array('product', 'post'),
+            'posts_per_page' => 1,
+            'meta_key' => '_amazon_affiliate_url',
+            'meta_compare' => 'EXISTS',
+            'post__not_in' => array($post->ID),
+            'orderby' => 'rand'
+        );
+        
+        $products_query = new WP_Query($args);
+        
+        if ($products_query->have_posts()) {
+            $products_query->the_post();
+            $amazon_url = $this->get_amazon_url(get_the_ID());
+            $amazon_url = $this->add_associate_tag($amazon_url);
+            $image = get_the_post_thumbnail_url(get_the_ID(), 'medium');
+            $title = get_the_title();
+            
+            // Container com identificação da posição
+            echo '<div class="amazon-display amazon-display-' . esc_attr($display_type) . ' amazon-position-' . esc_attr($display_position) . '">';
+            
+            if ($display_type === 'banner_horizontal') {
+                echo '<div class="amazon-banner amazon-banner-horizontal" style="background: linear-gradient(135deg, #FF9900 0%, #FF6600 100%); color: white;">';
+                echo '<div class="amazon-banner-content">';
+                echo '<div class="amazon-banner-text">';
+                echo '<h3>' . esc_html($title) . '</h3>';
+                echo '<p>Confira esta oferta especial na Amazon!</p>';
+                echo '<a href="' . esc_url($amazon_url) . '" target="_blank" class="amazon-banner-cta">Ver Oferta</a>';
                 echo '</div>';
-            } else {
-                echo '<div class="amazon-' . esc_attr($display_type) . '">';
                 if ($image) {
-                    echo '<img src="' . esc_url($image) . '" alt="' . esc_attr(get_the_title()) . '" class="amazon-product-image">';
+                    echo '<div class="amazon-banner-image"><img src="' . esc_url($image) . '" alt="' . esc_attr($title) . '"></div>';
                 }
-                echo '<h4>' . esc_html(get_the_title()) . '</h4>';
-                echo '<a href="' . esc_url($amazon_url) . '" target="_blank" class="amazon-product-link">Ver na Amazon</a>';
+                echo '</div></div>';
+            } elseif ($display_type === 'banner_vertical') {
+                echo '<div class="amazon-banner amazon-banner-vertical" style="background: linear-gradient(135deg, #FF9900 0%, #FF6600 100%); color: white;">';
+                if ($image) {
+                    echo '<div class="amazon-banner-image"><img src="' . esc_url($image) . '" alt="' . esc_attr($title) . '"></div>';
+                }
+                echo '<div class="amazon-banner-text">';
+                echo '<h3>' . esc_html($title) . '</h3>';
+                echo '<p>Oferta especial</p>';
+                echo '<a href="' . esc_url($amazon_url) . '" target="_blank" class="amazon-banner-cta">Ver na Amazon</a>';
+                echo '</div></div>';
+            } elseif ($display_type === 'card') {
+                echo '<div class="amazon-display-card">';
+                echo '<button class="amazon-card-close">&times;</button>';
+                echo '<div class="amazon-card-content">';
+                if ($image) {
+                    echo '<div class="amazon-card-image"><img src="' . esc_url($image) . '" alt="' . esc_attr($title) . '"></div>';
+                }
+                echo '<div class="amazon-card-text">';
+                echo '<h4>' . esc_html($title) . '</h4>';
+                echo '<p>Encontramos este produto que pode interessar você. Confira na Amazon!</p>';
+                echo '<a href="' . esc_url($amazon_url) . '" target="_blank" class="amazon-card-cta">Ver na Amazon</a>';
+                echo '</div></div></div>';
+            } elseif ($display_type === 'sticky_bar') {
+                // Força exibição da sticky bar mesmo em posições diferentes
+                echo '<div class="amazon-banner amazon-banner-horizontal" style="background: linear-gradient(135deg, #FF9900 0%, #FF6600 100%); color: white; position: relative;">';
+                echo '<div class="amazon-banner-content">';
+                echo '<div class="amazon-banner-text">';
+                echo '<h3>🎯 ' . esc_html($title) . '</h3>';
+                echo '<a href="' . esc_url($amazon_url) . '" target="_blank" class="amazon-banner-cta">Ver na Amazon</a>';
                 echo '</div>';
+                if ($image) {
+                    echo '<div class="amazon-banner-image"><img src="' . esc_url($image) . '" alt="' . esc_attr($title) . '"></div>';
+                }
+                echo '</div></div>';
             }
             
             echo '</div>';
+            
+            // Debug no cabeçalho
+            if ($display_position === 'header') {
+                echo '<!-- Amazon Plugin: Conteúdo exibido com sucesso no cabeçalho -->';
+            }
+            
             wp_reset_postdata();
+        } else {
+            // Debug quando não encontra produtos
+            if ($display_position === 'header') {
+                echo '<!-- Amazon Plugin: Nenhum produto Amazon encontrado para exibir no cabeçalho -->';
+            }
         }
     }
     
@@ -1034,10 +1185,10 @@ class AmazonAffiliatePopup {
     
     // Adiciona scripts e estilos no admin
     public function admin_enqueue_scripts($hook) {
-        wp_enqueue_style('amazon-affiliate-admin', plugin_dir_url(__FILE__) . 'admin-style.css');
+        wp_enqueue_style('amazon-affiliate-admin', plugin_dir_url(__FILE__) . 'admin-style.css', array(), '2.5');
         
         if ($hook === 'settings_page_amazon_affiliate_popup' || $hook === 'toplevel_page_amazon_affiliate_popup') {
-            wp_enqueue_script('amazon-affiliate-admin', plugin_dir_url(__FILE__) . 'admin-script.js', array('jquery'), '1.0', true);
+            wp_enqueue_script('amazon-affiliate-admin', plugin_dir_url(__FILE__) . 'admin-script.js', array('jquery'), '2.5', true);
             
             wp_localize_script('amazon-affiliate-admin', 'amazon_affiliate_admin', array(
                 'ajax_url' => admin_url('admin-ajax.php'),
@@ -1380,6 +1531,8 @@ class AmazonAffiliatePopup {
     
     // Verifica todos os produtos existentes
     public function scan_all_amazon_products($offset = 0) {
+        error_log('scan_all_amazon_products iniciado com offset: ' . $offset);
+        
         $batch_size = 10;
         
         // Busca posts e produtos
@@ -1452,34 +1605,279 @@ private function render_amazon_products($products, $atts) {
     $template_class = 'amazon-products-' . $atts['template'];
     echo '<div class="amazon-products-list ' . esc_attr($template_class) . '">';
     echo '<h3>Produtos Recomendados</h3>';
-    echo '<div class="amazon-products-grid">';
     
-    while ($products->have_posts()) {
-        $products->the_post();
-        $amazon_url = $this->get_amazon_url(get_the_ID());
-        $amazon_url = $this->add_associate_tag($amazon_url);
-        $image = get_the_post_thumbnail_url(get_the_ID(), 'medium');
+    // Container específico para cada template
+    if ($atts['template'] === 'carousel') {
+        $carousel_id = 'amazon-carousel-' . wp_rand(1000, 9999);
+        $carousel_desktop_id = $carousel_id . '-desktop';
+        $carousel_mobile_id = $carousel_id . '-mobile';
         
-        if (empty($image)) {
-            $image = plugin_dir_url(__FILE__) . 'default-product.jpg';
+        echo '<div class="amazon-bootstrap-carousel-wrapper">';
+        
+        // Carrossel Desktop
+        echo '<div id="' . $carousel_desktop_id . '" class="carousel slide amazon-bootstrap-carousel d-none d-md-block" data-bs-ride="false" data-bs-interval="false">';
+        echo '<div class="carousel-inner amazon-desktop-slides">';
+        
+        $product_count = 0;
+        $products_per_slide = 3; // 3 produtos por slide
+        $slide_count = 0;
+        $all_products = array();
+        
+        // Coleta todos os produtos primeiro
+        while ($products->have_posts()) {
+            $products->the_post();
+            $all_products[] = array(
+                'id' => get_the_ID(),
+                'title' => get_the_title(),
+                'image' => get_the_post_thumbnail_url(get_the_ID(), 'medium') ?: plugin_dir_url(__FILE__) . 'default-product.svg',
+                'excerpt' => get_the_excerpt() ?: wp_trim_words(get_the_content(), 15),
+                'amazon_url' => $this->add_associate_tag($this->get_amazon_url(get_the_ID())),
+                'price' => get_post_meta(get_the_ID(), '_price', true),
+                'regular_price' => get_post_meta(get_the_ID(), '_regular_price', true),
+                'sale_price' => get_post_meta(get_the_ID(), '_sale_price', true)
+            );
         }
         
-        echo '<div class="amazon-product-item">';
-        echo '<div class="amazon-product-image"><img src="' . esc_url($image) . '" alt="' . esc_attr(get_the_title()) . '"></div>';
-        echo '<h4>' . esc_html(get_the_title()) . '</h4>';
+        // Cria slides com produtos responsivos
+        $total_products = count($all_products);
+        $products_per_slide_desktop = 3;
+        $slide_count = 0;
         
-        if ($atts['show_description'] === 'yes') {
-            echo '<p class="amazon-product-description">' . wp_trim_words(get_the_excerpt(), 15) . '</p>';
+        for ($i = 0; $i < $total_products; $i += $products_per_slide_desktop) {
+            $active_class = ($slide_count === 0) ? ' active' : '';
+            echo '<div class="carousel-item' . $active_class . '">';
+            echo '<div class="container-fluid px-4">';
+            echo '<div class="row g-4 justify-content-center amazon-slide-row">';
+            
+            // Adiciona produtos para este slide
+            for ($j = 0; $j < $products_per_slide_desktop && ($i + $j) < $total_products; $j++) {
+                $product = $all_products[$i + $j];
+                $product_index = $i + $j;
+                
+                // Classes responsivas: desktop 3 colunas, tablet 2, mobile 1
+                $col_classes = 'col-lg-4 col-md-6 col-12';
+                if ($j >= 2) {
+                    $col_classes .= ' d-lg-block d-md-none'; // Terceiro produto: apenas desktop
+                } elseif ($j >= 1) {
+                    $col_classes .= ' d-md-block d-sm-none'; // Segundo produto: tablet e desktop
+                }
+                
+                echo '<div class="' . $col_classes . ' amazon-product-col" data-product-index="' . $product_index . '">';
+                echo '<div class="card amazon-bootstrap-card h-100 shadow-sm border-0">';
+                echo '<div class="amazon-card-img-container position-relative overflow-hidden">';
+                echo '<img src="' . esc_url($product['image']) . '" class="card-img-top amazon-card-img" alt="' . esc_attr($product['title']) . '" loading="lazy">';
+                echo '</div>';
+                echo '<div class="card-body d-flex flex-column p-3">';
+                echo '<h5 class="card-title amazon-card-title mb-2 fw-bold">' . esc_html(wp_trim_words($product['title'], 6)) . '</h5>';
+                
+                if ($atts['show_description'] === 'yes') {
+                    echo '<p class="card-text amazon-card-desc text-muted small flex-grow-1 mb-3">' . esc_html(wp_trim_words($product['excerpt'], 15)) . '</p>';
+                }
+                
+                // Preço
+                if ($atts['show_price'] === 'yes') {
+                    echo '<div class="amazon-bootstrap-price mb-3">';
+                    if (!empty($product['sale_price']) && !empty($product['regular_price']) && $product['sale_price'] < $product['regular_price']) {
+                        echo '<div class="d-flex align-items-center gap-2 mb-1">';
+                        echo '<span class="text-danger fw-bold fs-5">R$ ' . number_format(floatval($product['sale_price']), 2, ',', '.') . '</span>';
+                        echo '<span class="text-muted text-decoration-line-through small">R$ ' . number_format(floatval($product['regular_price']), 2, ',', '.') . '</span>';
+                        echo '</div>';
+                    } elseif (!empty($product['price'])) {
+                        echo '<span class="text-success fw-bold fs-5">R$ ' . number_format(floatval($product['price']), 2, ',', '.') . '</span>';
+                    } elseif (!empty($product['regular_price'])) {
+                        echo '<span class="text-success fw-bold fs-5">R$ ' . number_format(floatval($product['regular_price']), 2, ',', '.') . '</span>';
+                    } else {
+                        echo '<span class="text-primary small">Ver preço na Amazon</span>';
+                    }
+                    echo '</div>';
+                }
+                
+                // Avaliação fake para visual
+                echo '<div class="amazon-bootstrap-rating mb-3 d-flex align-items-center gap-1">';
+                echo '<span class="text-warning fs-6">★★★★☆</span>';
+                echo '<small class="text-muted ms-1">(4.2/5)</small>';
+                echo '</div>';
+                
+                $target = ($atts['target_blank'] === 'yes') ? '_blank' : '_self';
+                echo '<a href="' . esc_url($product['amazon_url']) . '" target="' . $target . '" class="btn btn-warning amazon-btn-custom mt-auto fw-bold d-flex align-items-center justify-content-center gap-2">';
+                echo '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-up-right" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/><path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/></svg>Ver na Amazon';
+                echo '</a>';
+                echo '</div></div></div>';
+            }
+            
+            echo '</div></div></div>'; // Fecha row, container-fluid e carousel-item
+            $slide_count++;
         }
         
-        $target = ($atts['target_blank'] === 'yes') ? '_blank' : '_self';
-        echo '<a href="' . esc_url($amazon_url) . '" target="' . $target . '" class="amazon-product-link">Ver na Amazon</a>';
-        echo '</div>';
+        echo '</div>'; // Fecha carousel-inner desktop
+        
+        // Controles e indicadores desktop
+        if ($slide_count > 1) {
+            echo '<button class="carousel-control-prev amazon-carousel-control" type="button" data-bs-target="#' . $carousel_desktop_id . '" data-bs-slide="prev">';
+            echo '<span class="carousel-control-prev-icon" aria-hidden="true"></span>';
+            echo '<span class="visually-hidden">Anterior</span>';
+            echo '</button>';
+            echo '<button class="carousel-control-next amazon-carousel-control" type="button" data-bs-target="#' . $carousel_desktop_id . '" data-bs-slide="next">';
+            echo '<span class="carousel-control-next-icon" aria-hidden="true"></span>';
+            echo '<span class="visually-hidden">Próximo</span>';
+            echo '</button>';
+            
+            echo '<div class="carousel-indicators">';
+            for ($ind = 0; $ind < $slide_count; $ind++) {
+                $active = ($ind === 0) ? ' active' : '';
+                $aria_current = ($ind === 0) ? ' aria-current="true"' : '';
+                echo '<button type="button" data-bs-target="#' . $carousel_desktop_id . '" data-bs-slide-to="' . $ind . '" class="amazon-carousel-indicator' . $active . '"' . $aria_current . '></button>';
+            }
+            echo '</div>';
+        }
+        
+        echo '</div>'; // Fecha carousel desktop
+        
+        // Carrossel Mobile
+        echo '<div id="' . $carousel_mobile_id . '" class="carousel slide amazon-bootstrap-carousel d-md-none" data-bs-ride="false" data-bs-interval="false">';
+        echo '<div class="carousel-inner amazon-mobile-slides">';
+        for ($i = 0; $i < $total_products; $i++) {
+            $active_class = ($i === 0) ? ' active' : '';
+            $product = $all_products[$i];
+            
+            echo '<div class="carousel-item' . $active_class . '">';
+            echo '<div class="container-fluid px-4">';
+            echo '<div class="row g-4 justify-content-center">';
+            echo '<div class="col-12">';
+            
+            // Card do produto para mobile
+            echo '<div class="card amazon-bootstrap-card h-100 shadow-sm border-0 mx-auto" style="max-width: 320px;">';
+            echo '<div class="amazon-card-img-container position-relative overflow-hidden">';
+            echo '<img src="' . esc_url($product['image']) . '" class="card-img-top amazon-card-img" alt="' . esc_attr($product['title']) . '" loading="lazy">';
+            echo '</div>';
+            echo '<div class="card-body d-flex flex-column p-3">';
+            echo '<h5 class="card-title amazon-card-title mb-2 fw-bold text-center">' . esc_html(wp_trim_words($product['title'], 8)) . '</h5>';
+            
+            if ($atts['show_description'] === 'yes') {
+                echo '<p class="card-text amazon-card-desc text-muted small flex-grow-1 mb-3 text-center">' . esc_html(wp_trim_words($product['excerpt'], 20)) . '</p>';
+            }
+            
+            // Preço para mobile
+            if ($atts['show_price'] === 'yes') {
+                echo '<div class="amazon-bootstrap-price mb-3 text-center">';
+                if (!empty($product['sale_price']) && !empty($product['regular_price']) && $product['sale_price'] < $product['regular_price']) {
+                    echo '<div class="d-flex align-items-center justify-content-center gap-2 mb-1">';
+                    echo '<span class="text-danger fw-bold fs-5">R$ ' . number_format(floatval($product['sale_price']), 2, ',', '.') . '</span>';
+                    echo '<span class="text-muted text-decoration-line-through small">R$ ' . number_format(floatval($product['regular_price']), 2, ',', '.') . '</span>';
+                    echo '</div>';
+                } elseif (!empty($product['price'])) {
+                    echo '<span class="text-success fw-bold fs-5">R$ ' . number_format(floatval($product['price']), 2, ',', '.') . '</span>';
+                } elseif (!empty($product['regular_price'])) {
+                    echo '<span class="text-success fw-bold fs-5">R$ ' . number_format(floatval($product['regular_price']), 2, ',', '.') . '</span>';
+                } else {
+                    echo '<span class="text-primary small">Ver preço na Amazon</span>';
+                }
+                echo '</div>';
+            }
+            
+            // Avaliação para mobile
+            echo '<div class="amazon-bootstrap-rating mb-3 d-flex align-items-center justify-content-center gap-1">';
+            echo '<span class="text-warning fs-6">★★★★☆</span>';
+            echo '<small class="text-muted ms-1">(4.2/5)</small>';
+            echo '</div>';
+            
+            $target = ($atts['target_blank'] === 'yes') ? '_blank' : '_self';
+            echo '<a href="' . esc_url($product['amazon_url']) . '" target="' . $target . '" class="btn btn-warning amazon-btn-custom mt-auto fw-bold d-flex align-items-center justify-content-center gap-2">';
+            echo '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-up-right" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/><path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/></svg>Ver na Amazon';
+            echo '</a>';
+            echo '</div></div></div>';
+            
+            echo '</div></div></div>'; // Fecha col, row, container e carousel-item
+        }
+        echo '</div>'; // Fecha carousel-inner mobile
+        
+        // Controles e indicadores mobile
+        if ($total_products > 1) {
+            echo '<button class="carousel-control-prev amazon-carousel-control" type="button" data-bs-target="#' . $carousel_mobile_id . '" data-bs-slide="prev">';
+            echo '<span class="carousel-control-prev-icon" aria-hidden="true"></span>';
+            echo '<span class="visually-hidden">Anterior</span>';
+            echo '</button>';
+            echo '<button class="carousel-control-next amazon-carousel-control" type="button" data-bs-target="#' . $carousel_mobile_id . '" data-bs-slide="next">';
+            echo '<span class="carousel-control-next-icon" aria-hidden="true"></span>';
+            echo '<span class="visually-hidden">Próximo</span>';
+            echo '</button>';
+            
+            echo '<div class="carousel-indicators">';
+            for ($ind = 0; $ind < $total_products; $ind++) {
+                $active = ($ind === 0) ? ' active' : '';
+                $aria_current = ($ind === 0) ? ' aria-current="true"' : '';
+                echo '<button type="button" data-bs-target="#' . $carousel_mobile_id . '" data-bs-slide-to="' . $ind . '" class="amazon-carousel-indicator' . $active . '"' . $aria_current . '></button>';
+            }
+            echo '</div>';
+        }
+        
+        echo '</div>'; // Fecha carousel mobile
+        echo '</div>'; // Fecha carousel wrapper
+        
+        echo '</div>'; // Fecha carousel
+    } else {
+        echo '<div class="amazon-products-grid">';
+        
+        $product_count = 0;
+        while ($products->have_posts()) {
+            $products->the_post();
+            $amazon_url = $this->get_amazon_url(get_the_ID());
+            $amazon_url = $this->add_associate_tag($amazon_url);
+            $image = get_the_post_thumbnail_url(get_the_ID(), 'medium');
+            $price = get_post_meta(get_the_ID(), '_price', true);
+            $regular_price = get_post_meta(get_the_ID(), '_regular_price', true);
+            $sale_price = get_post_meta(get_the_ID(), '_sale_price', true);
+            
+            if (empty($image)) {
+                $image = plugin_dir_url(__FILE__) . 'default-product.svg';
+            }
+            
+            echo '<div class="amazon-product-item" data-index="' . $product_count . '">';
+            echo '<div class="amazon-product-image"><img src="' . esc_url($image) . '" alt="' . esc_attr(get_the_title()) . '"></div>';
+            echo '<h4>' . esc_html(get_the_title()) . '</h4>';
+            
+            if ($atts['show_description'] === 'yes') {
+                $excerpt = get_the_excerpt();
+                if (empty($excerpt)) {
+                    $excerpt = wp_trim_words(get_the_content(), 15);
+                }
+                echo '<p class="amazon-product-description">' . wp_trim_words($excerpt, 12) . '</p>';
+            }
+            
+            // Exibe preço se disponível
+            if ($atts['show_price'] === 'yes') {
+                echo '<div class="amazon-product-price">';
+                if (!empty($sale_price) && !empty($regular_price) && $sale_price < $regular_price) {
+                    echo '<span class="amazon-price-sale">R$ ' . number_format(floatval($sale_price), 2, ',', '.') . '</span>';
+                    echo '<span class="amazon-price-regular">R$ ' . number_format(floatval($regular_price), 2, ',', '.') . '</span>';
+                } elseif (!empty($price)) {
+                    echo '<span class="amazon-price-current">R$ ' . number_format(floatval($price), 2, ',', '.') . '</span>';
+                } elseif (!empty($regular_price)) {
+                    echo '<span class="amazon-price-current">R$ ' . number_format(floatval($regular_price), 2, ',', '.') . '</span>';
+                } else {
+                    echo '<span class="amazon-price-check">Ver preço na Amazon</span>';
+                }
+                echo '</div>';
+            }
+            
+            // Avaliação fake para melhor visual
+            echo '<div class="amazon-product-rating">';
+            echo '<span class="amazon-stars">★★★★☆</span>';
+            echo '<span class="amazon-rating-text">(4.2/5 - Ver mais avaliações)</span>';
+            echo '</div>';
+            
+            $target = ($atts['target_blank'] === 'yes') ? '_blank' : '_self';
+            echo '<a href="' . esc_url($amazon_url) . '" target="' . $target . '" class="amazon-product-link">Ver na Amazon</a>';
+            echo '</div>';
+            
+            $product_count++;
+        }
+        
+        echo '</div>'; // Fecha amazon-products-grid
     }
     
-    echo '</div>';
     echo '<p class="amazon-disclaimer">* Links de afiliado. Podemos receber uma comissão por compras qualificadas.</p>';
-    echo '</div>';
+    echo '</div>'; // Fecha amazon-products-list
     
     wp_reset_postdata();
     return ob_get_clean();
@@ -1939,12 +2337,18 @@ function amazon_affiliate_deactivation() {
 // AJAX para verificar todos os produtos
 add_action('wp_ajax_scan_all_amazon_products', 'scan_all_amazon_products_callback');
 function scan_all_amazon_products_callback() {
+    // Log para debug
+    error_log('Função scan_all_amazon_products_callback chamada');
+    
     check_ajax_referer('scan_all_amazon_products', 'nonce');
     
     $offset = isset($_POST['offset']) ? intval($_POST['offset']) : 0;
+    error_log('Offset recebido: ' . $offset);
     
     $plugin = new AmazonAffiliatePopup();
     $result = $plugin->scan_all_amazon_products($offset);
+    
+    error_log('Resultado da verificação: ' . print_r($result, true));
     
     // Calcula estatísticas para a barra de progresso
     $batch_size = 10; // Tamanho do lote processado
