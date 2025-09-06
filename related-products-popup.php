@@ -17,8 +17,11 @@ class AmazonAffiliatePopup {
     private $associate_tag;
     
     public function __construct() {
-        // Inicializa o plugin
-        add_action('plugins_loaded', array($this, 'init'));
+        // Inicializa custom post types
+        add_action('init', array($this, 'register_custom_post_types'));
+        
+        // Adiciona metabox para termos do glossário
+        add_action('add_meta_boxes', array($this, 'add_glossary_meta_boxes'));
     }
     
     public function init() {
@@ -38,11 +41,17 @@ class AmazonAffiliatePopup {
         add_action('wp_ajax_get_amazon_products', array($this, 'get_amazon_products'));
         add_action('wp_ajax_nopriv_get_amazon_products', array($this, 'get_amazon_products'));
         
-        // Shortcode para exibir produtos manualmente
+        // Shortcodes para exibir produtos manualmente
         add_shortcode('amazon_products', array($this, 'amazon_products_shortcode'));
+        add_shortcode('amazon_banner', array($this, 'amazon_banner_shortcode'));
+        add_shortcode('amazon_campaign', array($this, 'amazon_campaign_shortcode'));
+        add_shortcode('amazon_glossary', array($this, 'amazon_glossary_shortcode'));
         
         // Hook para verificar links Amazon em produtos WooCommerce
         add_action('save_post', array($this, 'check_amazon_links'), 20, 3);
+        
+        // Hook para salvar dados dos metaboxes
+        add_action('save_post', array($this, 'save_meta_box_data'), 10, 2);
         
         // Adiciona coluna personalizada na lista de produtos
         add_filter('manage_product_posts_columns', array($this, 'add_affiliate_column'));
@@ -93,6 +102,15 @@ class AmazonAffiliatePopup {
             'manage_options',
             'amazon_affiliate_docs',
             array($this, 'docs_page')
+        );
+        
+        add_submenu_page(
+            'amazon_affiliate_popup',
+            'Campanhas Ativas',
+            'Campanhas Ativas',
+            'manage_options',
+            'amazon_affiliate_campaigns',
+            array($this, 'campaigns_page')
         );
     }
     
@@ -146,6 +164,30 @@ class AmazonAffiliatePopup {
             'amazon_affiliate_settings',
             'amazon_affiliate_general_section'
         );
+        
+        add_settings_field(
+            'display_position',
+            'Posição de exibição',
+            array($this, 'display_position_render'),
+            'amazon_affiliate_settings',
+            'amazon_affiliate_general_section'
+        );
+        
+        add_settings_field(
+            'display_type',
+            'Tipo de exibição',
+            array($this, 'display_type_render'),
+            'amazon_affiliate_settings',
+            'amazon_affiliate_general_section'
+        );
+        
+        add_settings_field(
+            'campaign_duration',
+            'Duração das campanhas',
+            array($this, 'campaign_duration_render'),
+            'amazon_affiliate_settings',
+            'amazon_affiliate_general_section'
+        );
     }
     
     public function settings_section_callback() {
@@ -195,6 +237,50 @@ class AmazonAffiliatePopup {
         echo '<input type="checkbox" name="amazon_affiliate_settings[auto_detect]" value="1" ' . checked($auto_detect, '1', false) . '>';
         echo '<label>Ativar detecção automática de links Amazon</label>';
         echo '<p class="description">Quando ativado, o plugin irá verificar automaticamente links Amazon em novos conteúdos.</p>';
+    }
+    
+    public function display_position_render() {
+        $position = isset($this->options['display_position']) ? $this->options['display_position'] : 'auto';
+        
+        echo '<select name="amazon_affiliate_settings[display_position]">';
+        echo '<option value="auto" ' . selected($position, 'auto', false) . '>Automático (popup)</option>';
+        echo '<option value="header" ' . selected($position, 'header', false) . '>Cabeçalho</option>';
+        echo '<option value="footer" ' . selected($position, 'footer', false) . '>Rodapé</option>';
+        echo '<option value="before_content" ' . selected($position, 'before_content', false) . '>Antes do conteúdo</option>';
+        echo '<option value="after_content" ' . selected($position, 'after_content', false) . '>Depois do conteúdo</option>';
+        echo '<option value="sidebar" ' . selected($position, 'sidebar', false) . '>Sidebar</option>';
+        echo '</select>';
+        echo '<p class="description">Onde os produtos Amazon serão exibidos na página.</p>';
+    }
+    
+    public function display_type_render() {
+        $type = isset($this->options['display_type']) ? $this->options['display_type'] : 'popup';
+        
+        echo '<select name="amazon_affiliate_settings[display_type]">';
+        echo '<option value="popup" ' . selected($type, 'popup', false) . '>Popup</option>';
+        echo '<option value="banner_horizontal" ' . selected($type, 'banner_horizontal', false) . '>Banner Horizontal</option>';
+        echo '<option value="banner_vertical" ' . selected($type, 'banner_vertical', false) . '>Banner Vertical</option>';
+        echo '<option value="sticky_bar" ' . selected($type, 'sticky_bar', false) . '>Barra Fixa</option>';
+        echo '<option value="card" ' . selected($type, 'card', false) . '>Cartão</option>';
+        echo '</select>';
+        echo '<p class="description">Formato de exibição dos produtos Amazon.</p>';
+    }
+    
+    public function campaign_duration_render() {
+        $start_time = isset($this->options['campaign_start_time']) ? $this->options['campaign_start_time'] : '';
+        $end_time = isset($this->options['campaign_end_time']) ? $this->options['campaign_end_time'] : '';
+        
+        echo '<div style="margin-bottom: 10px;">';
+        echo '<label>Início da campanha:</label><br>';
+        echo '<input type="datetime-local" name="amazon_affiliate_settings[campaign_start_time]" value="' . esc_attr($start_time) . '">';
+        echo '</div>';
+        
+        echo '<div>';
+        echo '<label>Fim da campanha:</label><br>';
+        echo '<input type="datetime-local" name="amazon_affiliate_settings[campaign_end_time]" value="' . esc_attr($end_time) . '">';
+        echo '</div>';
+        
+        echo '<p class="description">Defina períodos específicos para exibir campanhas. Deixe em branco para exibir sempre.</p>';
     }
     
     
@@ -330,6 +416,12 @@ class AmazonAffiliatePopup {
                         <p><code>[amazon_products]</code> - Exibe 3 produtos</p>
                         <p><code>[amazon_products count="5"]</code> - Exibe 5 produtos</p>
                         <p><code>[amazon_products category="saude"]</code> - Produtos de uma categoria específica</p>
+                        <p><code>[amazon_products tag="oferta"]</code> - Produtos com tag específica</p>
+                        <p><code>[amazon_products specific_urls="https://amazon.com/produto1, https://amazon.com/produto2"]</code> - URLs específicas</p>
+                        <p><code>[amazon_banner product_id="123" type="horizontal"]</code> - Banner horizontal</p>
+                        <p><code>[amazon_banner product_id="456" type="vertical" title="Oferta Especial"]</code> - Banner vertical customizado</p>
+                        <p><code>[amazon_campaign campaign_id="789"]</code> - Exibe uma campanha específica</p>
+                        <p><code>[amazon_glossary term="SEO" show_products="yes"]</code> - Termo do glossário com produtos relacionados</p>
                     </div>
                     
                     <h3>Dicas de Otimização</h3>
@@ -342,6 +434,141 @@ class AmazonAffiliatePopup {
                 </div>
             </div>
         </div>
+        <?php
+    }
+    
+    // Página de gerenciamento de campanhas
+    public function campaigns_page() {
+        $campaigns = get_posts(array(
+            'post_type' => 'amazon_campaign',
+            'posts_per_page' => -1,
+            'post_status' => 'publish'
+        ));
+        
+        ?>
+        <div class="wrap">
+            <h1>Campanhas Amazon Ativas</h1>
+            
+            <p><a href="<?php echo admin_url('post-new.php?post_type=amazon_campaign'); ?>" class="button button-primary">Criar Nova Campanha</a></p>
+            
+            <?php if (!empty($campaigns)): ?>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th>Campanha</th>
+                            <th>Status</th>
+                            <th>Início</th>
+                            <th>Fim</th>
+                            <th>URLs Alvo</th>
+                            <th>Produtos</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($campaigns as $campaign): 
+                            $start_date = get_post_meta($campaign->ID, '_campaign_start_date', true);
+                            $end_date = get_post_meta($campaign->ID, '_campaign_end_date', true);
+                            $target_urls = get_post_meta($campaign->ID, '_campaign_target_urls', true);
+                            $products = get_post_meta($campaign->ID, '_campaign_products', true);
+                            
+                            $current_time = current_time('Y-m-d\\TH:i');
+                            $is_active = true;
+                            
+                            if (!empty($start_date) && $current_time < $start_date) {
+                                $is_active = false;
+                                $status = 'Agendada';
+                            } elseif (!empty($end_date) && $current_time > $end_date) {
+                                $is_active = false;
+                                $status = 'Expirada';
+                            } else {
+                                $status = 'Ativa';
+                            }
+                            
+                            $status_class = $is_active ? 'active' : 'inactive';
+                        ?>
+                            <tr>
+                                <td>
+                                    <strong><?php echo esc_html($campaign->post_title); ?></strong>
+                                    <div class="row-actions">
+                                        <span class="edit"><a href="<?php echo get_edit_post_link($campaign->ID); ?>">Editar</a></span>
+                                    </div>
+                                </td>
+                                <td><span class="campaign-status campaign-status-<?php echo $status_class; ?>"><?php echo $status; ?></span></td>
+                                <td><?php echo !empty($start_date) ? date('d/m/Y H:i', strtotime($start_date)) : 'Imediato'; ?></td>
+                                <td><?php echo !empty($end_date) ? date('d/m/Y H:i', strtotime($end_date)) : 'Sem fim'; ?></td>
+                                <td>
+                                    <?php 
+                                    if (!empty($target_urls)) {
+                                        $urls = explode("\n", $target_urls);
+                                        echo esc_html(implode(', ', array_slice($urls, 0, 2)));
+                                        if (count($urls) > 2) {
+                                            echo ' (+' . (count($urls) - 2) . ' mais)';
+                                        }
+                                    } else {
+                                        echo 'Todas as páginas';
+                                    }
+                                    ?>
+                                </td>
+                                <td>
+                                    <?php 
+                                    if (!empty($products)) {
+                                        $product_ids = explode(',', $products);
+                                        echo count($product_ids) . ' produtos';
+                                    } else {
+                                        echo 'Nenhum produto';
+                                    }
+                                    ?>
+                                </td>
+                                <td>
+                                    <a href="<?php echo get_edit_post_link($campaign->ID); ?>" class="button button-small">Editar</a>
+                                    <a href="#" class="button button-small test-campaign" data-campaign-id="<?php echo $campaign->ID; ?>">Testar</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php else: ?>
+                <p>Nenhuma campanha criada ainda.</p>
+                <p><a href="<?php echo admin_url('post-new.php?post_type=amazon_campaign'); ?>" class="button button-primary">Criar Sua Primeira Campanha</a></p>
+            <?php endif; ?>
+            
+            <div class="amazon-campaigns-help" style="margin-top: 30px; background: #f8f9fa; padding: 20px; border-radius: 6px;">
+                <h3>Como usar as campanhas</h3>
+                <ul>
+                    <li><strong>Campanhas Globais:</strong> Deixe o campo "URLs Alvo" em branco para exibir em todo o site</li>
+                    <li><strong>Campanhas Específicas:</strong> Defina URLs específicas onde a campanha deve aparecer</li>
+                    <li><strong>Agendamento:</strong> Configure datas de início e fim para controlar quando a campanha é exibida</li>
+                    <li><strong>Produtos:</strong> Associe IDs de posts/produtos que contêm links Amazon</li>
+                </ul>
+            </div>
+        </div>
+        
+        <style>
+        .campaign-status {
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .campaign-status-active {
+            background: #46b450;
+            color: white;
+        }
+        .campaign-status-inactive {
+            background: #dc3232;
+            color: white;
+        }
+        </style>
+        
+        <script>
+        jQuery(document).ready(function($) {
+            $('.test-campaign').on('click', function(e) {
+                e.preventDefault();
+                var campaignId = $(this).data('campaign-id');
+                alert('Teste de campanha seria implementado aqui para a campanha ID: ' + campaignId);
+            });
+        });
+        </script>
         <?php
     }
     
@@ -511,43 +738,144 @@ class AmazonAffiliatePopup {
     
     // Adiciona scripts e estilos no frontend
     public function enqueue_scripts() {
-    // Verifica se é um post individual (artigo do blog)
-    if (!is_singular('post')) {
-        return;
-    }
-    
-    global $post;
-    
-    // Obtém as categorias do post atual
-    $categories = get_the_category($post->ID);
-    $category_ids = array();
-    
-    if (!empty($categories)) {
-        foreach ($categories as $category) {
-            $category_ids[] = $category->term_id;
+        // Verifica se é um post individual (artigo do blog)
+        if (!is_singular('post') && !is_singular('page') && !is_singular('product')) {
+            return;
+        }
+        
+        global $post;
+        
+        // Obtém as categorias do post atual
+        $categories = get_the_category($post->ID);
+        $category_ids = array();
+        
+        if (!empty($categories)) {
+            foreach ($categories as $category) {
+                $category_ids[] = $category->term_id;
+            }
+        }
+        
+        // Verifica configurações de exibição
+        $display = isset($this->options['popup_display']) ? $this->options['popup_display'] : 'all';
+        if ($display === 'none') {
+            return;
+        }
+        
+        // SEMPRE carrega os scripts, independentemente de ter produtos Amazon
+        wp_enqueue_style('amazon-affiliate-popup', plugin_dir_url(__FILE__) . 'popup-style.css');
+        wp_enqueue_script('amazon-affiliate-popup', plugin_dir_url(__FILE__) . 'popup-script.js', array('jquery'), '1.0', true);
+        
+        $delay = isset($this->options['popup_delay']) ? intval($this->options['popup_delay']) : 15;
+        $display_position = isset($this->options['display_position']) ? $this->options['display_position'] : 'auto';
+        $display_type = isset($this->options['display_type']) ? $this->options['display_type'] : 'popup';
+        
+        wp_localize_script('amazon-affiliate-popup', 'amazon_popup_vars', array(
+            'delay' => $delay * 1000,
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'post_id' => $post->ID,
+            'categories' => $category_ids,
+            'nonce' => wp_create_nonce('get_amazon_products'),
+            'display_position' => $display_position,
+            'display_type' => $display_type
+        ));
+        
+        // Adiciona ganchos para diferentes posições
+        if ($display_position !== 'auto') {
+            $this->add_display_hooks($display_position, $display_type);
         }
     }
     
-    // Verifica configurações de exibição
-    $display = isset($this->options['popup_display']) ? $this->options['popup_display'] : 'all';
-    if ($display === 'none') {
-        return;
+    // Adiciona ganchos para diferentes posições de exibição
+    private function add_display_hooks($position, $type) {
+        switch ($position) {
+            case 'header':
+                add_action('wp_head', array($this, 'display_amazon_content'));
+                break;
+            case 'footer':
+                add_action('wp_footer', array($this, 'display_amazon_content'));
+                break;
+            case 'before_content':
+                add_filter('the_content', array($this, 'add_before_content'));
+                break;
+            case 'after_content':
+                add_filter('the_content', array($this, 'add_after_content'));
+                break;
+            case 'sidebar':
+                add_action('dynamic_sidebar', array($this, 'display_amazon_content'));
+                break;
+        }
     }
     
-    // SEMPRE carrega os scripts, independentemente de ter produtos Amazon
-    wp_enqueue_style('amazon-affiliate-popup', plugin_dir_url(__FILE__) . 'popup-style.css');
-    wp_enqueue_script('amazon-affiliate-popup', plugin_dir_url(__FILE__) . 'popup-script.js', array('jquery'), '1.0', true);
+    // Exibe conteúdo Amazon
+    public function display_amazon_content() {
+        global $post;
+        
+        if (!$post) return;
+        
+        $display_type = isset($this->options['display_type']) ? $this->options['display_type'] : 'popup';
+        
+        // Busca produtos relacionados
+        $args = array(
+            'post_type' => array('product', 'post'),
+            'posts_per_page' => 1,
+            'meta_key' => '_amazon_affiliate_url',
+            'meta_compare' => 'EXISTS',
+            'post__not_in' => array($post->ID),
+            'orderby' => 'rand'
+        );
+        
+        $products_query = new WP_Query($args);
+        
+        if ($products_query->have_posts()) {
+            $products_query->the_post();
+            $amazon_url = $this->get_amazon_url(get_the_ID());
+            $amazon_url = $this->add_associate_tag($amazon_url);
+            $image = get_the_post_thumbnail_url(get_the_ID(), 'medium');
+            
+            echo '<div class="amazon-display amazon-display-' . esc_attr($display_type) . '">';
+            
+            if ($display_type === 'sticky_bar') {
+                echo '<div class="amazon-sticky-bar">';
+                echo '<span class="amazon-sticky-text">Oferta: ' . esc_html(get_the_title()) . '</span>';
+                echo '<a href="' . esc_url($amazon_url) . '" target="_blank" class="amazon-sticky-cta">Ver na Amazon</a>';
+                echo '<button class="amazon-sticky-close">&times;</button>';
+                echo '</div>';
+            } else {
+                echo '<div class="amazon-' . esc_attr($display_type) . '">';
+                if ($image) {
+                    echo '<img src="' . esc_url($image) . '" alt="' . esc_attr(get_the_title()) . '" class="amazon-product-image">';
+                }
+                echo '<h4>' . esc_html(get_the_title()) . '</h4>';
+                echo '<a href="' . esc_url($amazon_url) . '" target="_blank" class="amazon-product-link">Ver na Amazon</a>';
+                echo '</div>';
+            }
+            
+            echo '</div>';
+            wp_reset_postdata();
+        }
+    }
     
-    $delay = isset($this->options['popup_delay']) ? intval($this->options['popup_delay']) : 15;
+    // Adiciona conteúdo antes do texto
+    public function add_before_content($content) {
+        if (is_singular()) {
+            ob_start();
+            $this->display_amazon_content();
+            $amazon_content = ob_get_clean();
+            return $amazon_content . $content;
+        }
+        return $content;
+    }
     
-    wp_localize_script('amazon-affiliate-popup', 'amazon_popup_vars', array(
-        'delay' => $delay * 1000,
-        'ajax_url' => admin_url('admin-ajax.php'),
-        'post_id' => $post->ID,
-        'categories' => $category_ids,
-        'nonce' => wp_create_nonce('get_amazon_products')
-    ));
-}
+    // Adiciona conteúdo depois do texto
+    public function add_after_content($content) {
+        if (is_singular()) {
+            ob_start();
+            $this->display_amazon_content();
+            $amazon_content = ob_get_clean();
+            return $content . $amazon_content;
+        }
+        return $content;
+    }
     
     // Adiciona scripts e estilos no admin
     public function admin_enqueue_scripts($hook) {
@@ -565,87 +893,244 @@ class AmazonAffiliatePopup {
     
     // AJAX para buscar produtos Amazon
     public function get_amazon_products() {
-    check_ajax_referer('get_amazon_products', 'nonce');
-    
-    $post_id = intval($_POST['post_id']);
-    $categories = isset($_POST['categories']) ? $_POST['categories'] : array();
-    
-    // Busca produtos por categoria (não por links no post)
-    $args = array(
-        'post_type' => array('product', 'post'),
-        'posts_per_page' => 5,
-        'meta_key' => '_amazon_affiliate_url',
-        'meta_compare' => 'EXISTS',
-        'post__not_in' => array($post_id)
-    );
-    
-    // Se temos categorias, filtra por elas
-    if (!empty($categories)) {
-        $args['category__in'] = array_map('intval', $categories);
+        check_ajax_referer('get_amazon_products', 'nonce');
+        
+        $post_id = intval($_POST['post_id']);
+        $categories = isset($_POST['categories']) ? $_POST['categories'] : array();
+        
+        // Primeiro verifica se há uma campanha específica para esta página
+        $page_campaign = get_post_meta($post_id, '_amazon_page_campaign', true);
+        $custom_products = get_post_meta($post_id, '_amazon_custom_products', true);
+        
+        // Se há produtos customizados, use-os
+        if (!empty($custom_products)) {
+            $product_ids = array_map('trim', explode(',', $custom_products));
+            $this->send_specific_products($product_ids);
+            return;
+        }
+        
+        // Se há uma campanha específica, use-a
+        if (!empty($page_campaign)) {
+            $this->send_campaign_products($page_campaign);
+            return;
+        }
+        
+        // Verifica campanhas ativas para a URL atual
+        $active_campaign = $this->get_active_campaign_for_url();
+        if ($active_campaign) {
+            $this->send_campaign_products($active_campaign->ID);
+            return;
+        }
+        
+        // Comportamento padrão - busca produtos por categoria
+        $this->send_default_products($post_id, $categories);
     }
     
-    $products_query = new WP_Query($args);
-    
-    if (!$products_query->have_posts()) {
-        // Se não encontrou produtos nas categorias, busca quaisquer produtos
-        unset($args['category__in']);
-        $products_query = new WP_Query($args);
+    // Busca campanha ativa para a URL atual
+    private function get_active_campaign_for_url() {
+        $current_url = $_SERVER['REQUEST_URI'];
+        
+        // Busca campanhas ativas
+        $campaigns = get_posts(array(
+            'post_type' => 'amazon_campaign',
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'meta_query' => array(
+                'relation' => 'AND',
+                array(
+                    'relation' => 'OR',
+                    array(
+                        'key' => '_campaign_start_date',
+                        'value' => current_time('Y-m-d\\TH:i'),
+                        'compare' => '<=',
+                        'type' => 'DATETIME'
+                    ),
+                    array(
+                        'key' => '_campaign_start_date',
+                        'compare' => 'NOT EXISTS'
+                    )
+                ),
+                array(
+                    'relation' => 'OR',
+                    array(
+                        'key' => '_campaign_end_date',
+                        'value' => current_time('Y-m-d\\TH:i'),
+                        'compare' => '>=',
+                        'type' => 'DATETIME'
+                    ),
+                    array(
+                        'key' => '_campaign_end_date',
+                        'compare' => 'NOT EXISTS'
+                    )
+                )
+            )
+        ));
+        
+        foreach ($campaigns as $campaign) {
+            $target_urls = get_post_meta($campaign->ID, '_campaign_target_urls', true);
+            
+            // Se não há URLs alvo, a campanha é global
+            if (empty($target_urls)) {
+                return $campaign;
+            }
+            
+            // Verifica se a URL atual corresponde
+            $urls = explode("\n", $target_urls);
+            foreach ($urls as $url) {
+                $url = trim($url);
+                if (!empty($url) && strpos($current_url, $url) !== false) {
+                    return $campaign;
+                }
+            }
+        }
+        
+        return null;
     }
     
-    if ($products_query->have_posts()) {
-        $products = array();
-        while ($products_query->have_posts()) {
+    // Envia produtos de uma campanha específica
+    private function send_campaign_products($campaign_id) {
+        $products = get_post_meta($campaign_id, '_campaign_products', true);
+        
+        if (!empty($products)) {
+            $product_ids = array_map('trim', explode(',', $products));
+            $this->send_specific_products($product_ids);
+        } else {
+            wp_send_json_error('Campanha sem produtos configurados.');
+        }
+    }
+    
+    // Envia produtos específicos
+    private function send_specific_products($product_ids) {
+        if (empty($product_ids)) {
+            wp_send_json_error('Nenhum produto especificado.');
+            return;
+        }
+        
+        $products_query = new WP_Query(array(
+            'post__in' => $product_ids,
+            'post_type' => array('product', 'post'),
+            'posts_per_page' => 1,
+            'orderby' => 'rand'
+        ));
+        
+        if ($products_query->have_posts()) {
             $products_query->the_post();
             $amazon_url = $this->get_amazon_url(get_the_ID());
             
             if (!empty($amazon_url)) {
-                $products[] = array(
+                $product_data = array(
                     'url' => $this->add_associate_tag($amazon_url),
                     'title' => get_the_title(),
                     'image' => get_the_post_thumbnail_url(get_the_ID(), 'medium')
                 );
+                
+                ob_start();
+                $this->render_popup_product($product_data);
+                $content = ob_get_clean();
+                
+                wp_reset_postdata();
+                wp_send_json_success($content);
             }
         }
         
-        // Seleciona um produto aleatório
-        if (!empty($products)) {
-            $random_product = $products[array_rand($products)];
-            
-            ob_start();
-            ?>
-            <div class="amazon-popup-product">
-                <h3 class="amazon-popup-headline">Oferta Especial para Leitores!</h3>
-
-                <div class="amazon-product-image">
-                    <img src="<?php echo esc_url($random_product['image'] ?: plugin_dir_url(__FILE__) . 'default-product.jpg'); ?>" alt="<?php echo esc_attr($random_product['title']); ?>">
-                </div>
-                <h4><?php echo esc_html($random_product['title']); ?></h4>
-
-                <p>Encontramos esta oferta na Amazon que pode ser do seu interesse. Confira antes que acabe!</p>
-
-                <a href="<?php echo esc_url($random_product['url']); ?>" target="_blank" class="amazon-popup-cta">
-                    Conferir Oferta Agora
-                </a>
-                <p class="amazon-disclaimer">* Este é um link de afiliado. Podemos receber uma comissão por compras qualificadas.</p>
-            </div>
-            <?php
-            $content = ob_get_clean();
-
-            wp_send_json_success($content);
-        }
+        wp_send_json_error('Produto não encontrado ou sem link Amazon.');
     }
     
-    wp_send_json_error('Nenhum produto relacionado encontrado.');
-}
+    // Envia produtos padrão (comportamento original)
+    private function send_default_products($post_id, $categories) {
+        // Busca produtos por categoria (não por links no post)
+        $args = array(
+            'post_type' => array('product', 'post'),
+            'posts_per_page' => 5,
+            'meta_key' => '_amazon_affiliate_url',
+            'meta_compare' => 'EXISTS',
+            'post__not_in' => array($post_id)
+        );
+        
+        // Se temos categorias, filtra por elas
+        if (!empty($categories)) {
+            $args['category__in'] = array_map('intval', $categories);
+        }
+        
+        $products_query = new WP_Query($args);
+        
+        if (!$products_query->have_posts()) {
+            // Se não encontrou produtos nas categorias, busca quaisquer produtos
+            unset($args['category__in']);
+            $products_query = new WP_Query($args);
+        }
+        
+        if ($products_query->have_posts()) {
+            $products = array();
+            while ($products_query->have_posts()) {
+                $products_query->the_post();
+                $amazon_url = $this->get_amazon_url(get_the_ID());
+                
+                if (!empty($amazon_url)) {
+                    $products[] = array(
+                        'url' => $this->add_associate_tag($amazon_url),
+                        'title' => get_the_title(),
+                        'image' => get_the_post_thumbnail_url(get_the_ID(), 'medium')
+                    );
+                }
+            }
+            
+            // Seleciona um produto aleatório
+            if (!empty($products)) {
+                $random_product = $products[array_rand($products)];
+                
+                ob_start();
+                $this->render_popup_product($random_product);
+                $content = ob_get_clean();
+                
+                wp_send_json_success($content);
+            }
+        }
+        
+        wp_send_json_error('Nenhum produto relacionado encontrado.');
+    }
     
-    // Shortcode para exibir produtos manualmente
+    // Renderiza produto para popup
+    private function render_popup_product($product) {
+        ?>
+        <div class="amazon-popup-product">
+            <h3 class="amazon-popup-headline">Oferta Especial para Leitores!</h3>
+
+            <div class="amazon-product-image">
+                <img src="<?php echo esc_url($product['image'] ?: plugin_dir_url(__FILE__) . 'default-product.jpg'); ?>" alt="<?php echo esc_attr($product['title']); ?>">
+            </div>
+            <h4><?php echo esc_html($product['title']); ?></h4>
+
+            <p>Encontramos esta oferta na Amazon que pode ser do seu interesse. Confira antes que acabe!</p>
+
+            <a href="<?php echo esc_url($product['url']); ?>" target="_blank" class="amazon-popup-cta">
+                Conferir Oferta Agora
+            </a>
+            <p class="amazon-disclaimer">* Este é um link de afiliado. Podemos receber uma comissão por compras qualificadas.</p>
+        </div>
+        <?php
+    }
+    
+    // Shortcode para exibir produtos manualmente - EXPANDIDO
     public function amazon_products_shortcode($atts) {
         $atts = shortcode_atts(array(
             'count' => 3,
-            'post_type' => 'product'
+            'post_type' => 'product',
+            'category' => '',
+            'tag' => '',
+            'specific_urls' => '',
+            'template' => 'grid',
+            'show_price' => 'yes',
+            'show_description' => 'yes',
+            'target_blank' => 'yes'
         ), $atts);
         
-        // Busca posts com links Amazon
+        // Verifica se há URLs específicas
+        if (!empty($atts['specific_urls'])) {
+            return $this->render_specific_amazon_products($atts);
+        }
+        
+        // Argumentos da consulta
         $args = array(
             'post_type' => $atts['post_type'],
             'posts_per_page' => intval($atts['count']),
@@ -653,40 +1138,89 @@ class AmazonAffiliatePopup {
             'meta_compare' => 'EXISTS'
         );
         
+        // Filtra por categoria se especificada
+        if (!empty($atts['category'])) {
+            if (is_numeric($atts['category'])) {
+                $args['cat'] = $atts['category'];
+            } else {
+                $args['category_name'] = $atts['category'];
+            }
+        }
+        
+        // Filtra por tag se especificada
+        if (!empty($atts['tag'])) {
+            $args['tag'] = $atts['tag'];
+        }
+        
         $products = new WP_Query($args);
         
         if (!$products->have_posts()) {
             return '<p>Nenhum produto Amazon encontrado.</p>';
         }
         
-        ob_start();
-        echo '<div class="amazon-products-list">';
-        echo '<h3>Produtos Recomendados</h3>';
-        echo '<div class="amazon-products-grid">';
+        return $this->render_amazon_products($products, $atts);
+    }
+    
+    // Shortcode para banners Amazon
+    public function amazon_banner_shortcode($atts) {
+        $atts = shortcode_atts(array(
+            'type' => 'horizontal',
+            'product_id' => '',
+            'title' => 'Oferta Especial',
+            'subtitle' => 'Confira esta oferta imperdível!',
+            'button_text' => 'Ver na Amazon',
+            'background_color' => '#ff9900',
+            'text_color' => '#ffffff'
+        ), $atts);
         
-        while ($products->have_posts()) {
-            $products->the_post();
-            $amazon_url = $this->get_amazon_url(get_the_ID());
-            $amazon_url = $this->add_associate_tag($amazon_url);
-            $image = get_the_post_thumbnail_url(get_the_ID(), 'medium');
-            
-            if (empty($image)) {
-                $image = plugin_dir_url(__FILE__) . 'default-product.jpg';
-            }
-            
-            echo '<div class="amazon-product-item">';
-            echo '<div class="amazon-product-image"><img src="' . esc_url($image) . '" alt="' . esc_attr(get_the_title()) . '"></div>';
-            echo '<h4>' . esc_html(get_the_title()) . '</h4>';
-            echo '<a href="' . esc_url($amazon_url) . '" target="_blank" class="amazon-product-link">Ver na Amazon</a>';
-            echo '</div>';
+        if (empty($atts['product_id'])) {
+            return '<p>ID do produto não especificado.</p>';
         }
         
-        echo '</div>';
-        echo '<p class="amazon-disclaimer">* Links de afiliado. Podemos receber uma comissão por compras qualificadas.</p>';
-        echo '</div>';
+        $amazon_url = $this->get_amazon_url($atts['product_id']);
+        if (empty($amazon_url)) {
+            return '<p>Produto não possui link Amazon.</p>';
+        }
         
-        wp_reset_postdata();
-        return ob_get_clean();
+        return $this->render_amazon_banner($atts, $amazon_url);
+    }
+    
+    // Shortcode para campanhas específicas
+    public function amazon_campaign_shortcode($atts) {
+        $atts = shortcode_atts(array(
+            'campaign_id' => '',
+            'start_date' => '',
+            'end_date' => '',
+            'target_urls' => '',
+            'display_type' => 'popup'
+        ), $atts);
+        
+        // Verifica se a campanha está ativa
+        if (!$this->is_campaign_active($atts)) {
+            return '';
+        }
+        
+        // Verifica se a URL atual está nas URLs alvo
+        if (!$this->is_target_url($atts['target_urls'])) {
+            return '';
+        }
+        
+        return $this->render_campaign($atts);
+    }
+    
+    // Shortcode para glossário
+    public function amazon_glossary_shortcode($atts) {
+        $atts = shortcode_atts(array(
+            'term' => '',
+            'show_products' => 'yes',
+            'products_count' => 3
+        ), $atts);
+        
+        if (empty($atts['term'])) {
+            return '<p>Termo não especificado.</p>';
+        }
+        
+        return $this->render_glossary_term($atts);
     }
     
     // Verifica todos os produtos existentes
@@ -756,6 +1290,477 @@ private function count_posts_in_category($category_id) {
     return $count ? $count : 0;
 }
 
+// Funções auxiliares para os novos shortcodes
+private function render_amazon_products($products, $atts) {
+    ob_start();
+    
+    $template_class = 'amazon-products-' . $atts['template'];
+    echo '<div class="amazon-products-list ' . esc_attr($template_class) . '">';
+    echo '<h3>Produtos Recomendados</h3>';
+    echo '<div class="amazon-products-grid">';
+    
+    while ($products->have_posts()) {
+        $products->the_post();
+        $amazon_url = $this->get_amazon_url(get_the_ID());
+        $amazon_url = $this->add_associate_tag($amazon_url);
+        $image = get_the_post_thumbnail_url(get_the_ID(), 'medium');
+        
+        if (empty($image)) {
+            $image = plugin_dir_url(__FILE__) . 'default-product.jpg';
+        }
+        
+        echo '<div class="amazon-product-item">';
+        echo '<div class="amazon-product-image"><img src="' . esc_url($image) . '" alt="' . esc_attr(get_the_title()) . '"></div>';
+        echo '<h4>' . esc_html(get_the_title()) . '</h4>';
+        
+        if ($atts['show_description'] === 'yes') {
+            echo '<p class="amazon-product-description">' . wp_trim_words(get_the_excerpt(), 15) . '</p>';
+        }
+        
+        $target = ($atts['target_blank'] === 'yes') ? '_blank' : '_self';
+        echo '<a href="' . esc_url($amazon_url) . '" target="' . $target . '" class="amazon-product-link">Ver na Amazon</a>';
+        echo '</div>';
+    }
+    
+    echo '</div>';
+    echo '<p class="amazon-disclaimer">* Links de afiliado. Podemos receber uma comissão por compras qualificadas.</p>';
+    echo '</div>';
+    
+    wp_reset_postdata();
+    return ob_get_clean();
+}
+
+private function render_specific_amazon_products($atts) {
+    $urls = explode(',', $atts['specific_urls']);
+    $urls = array_map('trim', $urls);
+    
+    ob_start();
+    echo '<div class="amazon-products-specific">';
+    echo '<h3>Produtos Selecionados</h3>';
+    echo '<div class="amazon-products-grid">';
+    
+    foreach ($urls as $url) {
+        if (!empty($url)) {
+            echo '<div class="amazon-product-item">';
+            echo '<div class="amazon-product-image"><img src="https://via.placeholder.com/300x200?text=Produto+Amazon" alt="Produto Amazon"></div>';
+            echo '<h4>Produto Amazon</h4>';
+            echo '<a href="' . esc_url($this->add_associate_tag($url)) . '" target="_blank" class="amazon-product-link">Ver na Amazon</a>';
+            echo '</div>';
+        }
+    }
+    
+    echo '</div>';
+    echo '<p class="amazon-disclaimer">* Links de afiliado. Podemos receber uma comissão por compras qualificadas.</p>';
+    echo '</div>';
+    
+    return ob_get_clean();
+}
+
+private function render_amazon_banner($atts, $amazon_url) {
+    $amazon_url = $this->add_associate_tag($amazon_url);
+    $product = get_post($atts['product_id']);
+    $image = get_the_post_thumbnail_url($atts['product_id'], 'medium');
+    
+    ob_start();
+    $banner_class = 'amazon-banner amazon-banner-' . $atts['type'];
+    
+    echo '<div class="' . esc_attr($banner_class) . '" style="background-color: ' . esc_attr($atts['background_color']) . '; color: ' . esc_attr($atts['text_color']) . ';">';
+    
+    if ($atts['type'] === 'horizontal') {
+        echo '<div class="amazon-banner-content">';
+        echo '<div class="amazon-banner-text">';
+        echo '<h3>' . esc_html($atts['title']) . '</h3>';
+        echo '<p>' . esc_html($atts['subtitle']) . '</p>';
+        echo '<a href="' . esc_url($amazon_url) . '" target="_blank" class="amazon-banner-cta">' . esc_html($atts['button_text']) . '</a>';
+        echo '</div>';
+        if ($image) {
+            echo '<div class="amazon-banner-image"><img src="' . esc_url($image) . '" alt="' . esc_attr($product->post_title) . '"></div>';
+        }
+        echo '</div>';
+    } else {
+        if ($image) {
+            echo '<div class="amazon-banner-image"><img src="' . esc_url($image) . '" alt="' . esc_attr($product->post_title) . '"></div>';
+        }
+        echo '<div class="amazon-banner-text">';
+        echo '<h3>' . esc_html($atts['title']) . '</h3>';
+        echo '<p>' . esc_html($atts['subtitle']) . '</p>';
+        echo '<a href="' . esc_url($amazon_url) . '" target="_blank" class="amazon-banner-cta">' . esc_html($atts['button_text']) . '</a>';
+        echo '</div>';
+    }
+    
+    echo '</div>';
+    
+    return ob_get_clean();
+}
+
+private function is_campaign_active($atts) {
+    $current_time = current_time('timestamp');
+    
+    if (!empty($atts['start_date'])) {
+        $start_time = strtotime($atts['start_date']);
+        if ($current_time < $start_time) {
+            return false;
+        }
+    }
+    
+    if (!empty($atts['end_date'])) {
+        $end_time = strtotime($atts['end_date']);
+        if ($current_time > $end_time) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+private function is_target_url($target_urls) {
+    if (empty($target_urls)) {
+        return true; // Se não especificado, exibe em todas as URLs
+    }
+    
+    $current_url = home_url($_SERVER['REQUEST_URI']);
+    $urls = explode(',', $target_urls);
+    
+    foreach ($urls as $url) {
+        $url = trim($url);
+        if (strpos($current_url, $url) !== false) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+private function render_campaign($atts) {
+    // Implementação básica de campanha
+    ob_start();
+    echo '<div class="amazon-campaign amazon-campaign-' . esc_attr($atts['display_type']) . '">';
+    echo '<h3>Campanha Especial</h3>';
+    echo '<p>Campanha ID: ' . esc_html($atts['campaign_id']) . '</p>';
+    echo '</div>';
+    return ob_get_clean();
+}
+
+private function render_glossary_term($atts) {
+    // Busca o termo no glossário
+    $glossary_query = new WP_Query(array(
+        'post_type' => 'amazon_glossary',
+        'title' => $atts['term'],
+        'posts_per_page' => 1
+    ));
+    
+    ob_start();
+    
+    if ($glossary_query->have_posts()) {
+        $glossary_query->the_post();
+        $related_products = get_post_meta(get_the_ID(), '_amazon_related_products', true);
+        $search_terms = get_post_meta(get_the_ID(), '_amazon_search_terms', true);
+        
+        echo '<div class="amazon-glossary-term">';
+        echo '<h4 class="glossary-term">' . get_the_title() . '</h4>';
+        echo '<div class="glossary-definition">' . get_the_content() . '</div>';
+        
+        if ($atts['show_products'] === 'yes') {
+            echo '<div class="glossary-related-products">';
+            echo '<h5>Produtos Relacionados</h5>';
+            
+            // Busca produtos relacionados por IDs
+            if (!empty($related_products)) {
+                $product_ids = array_map('trim', explode(',', $related_products));
+                $products_query = new WP_Query(array(
+                    'post__in' => $product_ids,
+                    'post_type' => array('post', 'product'),
+                    'posts_per_page' => intval($atts['products_count'])
+                ));
+                
+                if ($products_query->have_posts()) {
+                    echo '<div class="glossary-products-grid">';
+                    while ($products_query->have_posts()) {
+                        $products_query->the_post();
+                        $amazon_url = $this->get_amazon_url(get_the_ID());
+                        if (!empty($amazon_url)) {
+                            $amazon_url = $this->add_associate_tag($amazon_url);
+                            $image = get_the_post_thumbnail_url(get_the_ID(), 'medium');
+                            
+                            echo '<div class="glossary-product-item">';
+                            if ($image) {
+                                echo '<img src="' . esc_url($image) . '" alt="' . esc_attr(get_the_title()) . '" class="glossary-product-image">';
+                            }
+                            echo '<h6>' . get_the_title() . '</h6>';
+                            echo '<a href="' . esc_url($amazon_url) . '" target="_blank" class="glossary-product-link">Ver na Amazon</a>';
+                            echo '</div>';
+                        }
+                    }
+                    echo '</div>';
+                    wp_reset_postdata();
+                } else {
+                    echo '<p>Nenhum produto relacionado encontrado.</p>';
+                }
+            } else {
+                echo '<p>Nenhum produto configurado para este termo.</p>';
+            }
+            
+            echo '</div>';
+        }
+        
+        echo '</div>';
+        wp_reset_postdata();
+    } else {
+        echo '<div class="amazon-glossary-term">';
+        echo '<h4 class="glossary-term">' . esc_html($atts['term']) . '</h4>';
+        echo '<div class="glossary-definition">Termo não encontrado no glossário.</div>';
+        echo '</div>';
+    }
+    
+    return ob_get_clean();
+}
+
+// Registra custom post types
+public function register_custom_post_types() {
+    // Custom post type para glossário
+    register_post_type('amazon_glossary', array(
+        'labels' => array(
+            'name' => 'Glossário Amazon',
+            'singular_name' => 'Termo do Glossário',
+            'add_new' => 'Adicionar Termo',
+            'add_new_item' => 'Adicionar Novo Termo',
+            'edit_item' => 'Editar Termo',
+            'new_item' => 'Novo Termo',
+            'view_item' => 'Ver Termo',
+            'search_items' => 'Buscar Termos',
+            'not_found' => 'Nenhum termo encontrado',
+            'not_found_in_trash' => 'Nenhum termo na lixeira'
+        ),
+        'public' => true,
+        'has_archive' => true,
+        'menu_icon' => 'dashicons-book-alt',
+        'supports' => array('title', 'editor', 'thumbnail'),
+        'rewrite' => array('slug' => 'glossario'),
+        'show_in_rest' => true
+    ));
+    
+    // Custom post type para campanhas
+    register_post_type('amazon_campaign', array(
+        'labels' => array(
+            'name' => 'Campanhas Amazon',
+            'singular_name' => 'Campanha',
+            'add_new' => 'Adicionar Campanha',
+            'add_new_item' => 'Adicionar Nova Campanha',
+            'edit_item' => 'Editar Campanha',
+            'new_item' => 'Nova Campanha',
+            'view_item' => 'Ver Campanha',
+            'search_items' => 'Buscar Campanhas',
+            'not_found' => 'Nenhuma campanha encontrada',
+            'not_found_in_trash' => 'Nenhuma campanha na lixeira'
+        ),
+        'public' => false,
+        'show_ui' => true,
+        'menu_icon' => 'dashicons-megaphone',
+        'supports' => array('title', 'editor'),
+        'show_in_rest' => true
+    ));
+}
+
+// Adiciona metaboxes
+public function add_glossary_meta_boxes() {
+    // Metabox para termos do glossário
+    add_meta_box(
+        'amazon_glossary_products',
+        'Produtos Amazon Relacionados',
+        array($this, 'glossary_products_meta_box'),
+        'amazon_glossary',
+        'normal',
+        'high'
+    );
+    
+    // Metabox para campanhas
+    add_meta_box(
+        'amazon_campaign_settings',
+        'Configurações da Campanha',
+        array($this, 'campaign_settings_meta_box'),
+        'amazon_campaign',
+        'normal',
+        'high'
+    );
+    
+    // Metabox para posts/páginas configurarem campanhas específicas
+    add_meta_box(
+        'amazon_page_campaign',
+        'Campanha Amazon Específica',
+        array($this, 'page_campaign_meta_box'),
+        array('post', 'page'),
+        'side',
+        'default'
+    );
+}
+
+// Metabox para produtos relacionados no glossário
+public function glossary_products_meta_box($post) {
+    wp_nonce_field('amazon_glossary_meta', 'amazon_glossary_nonce');
+    
+    $related_products = get_post_meta($post->ID, '_amazon_related_products', true);
+    $amazon_search_terms = get_post_meta($post->ID, '_amazon_search_terms', true);
+    
+    echo '<table class="form-table">';
+    echo '<tr>';
+    echo '<th><label for="amazon_search_terms">Termos de Busca Amazon</label></th>';
+    echo '<td><input type="text" id="amazon_search_terms" name="amazon_search_terms" value="' . esc_attr($amazon_search_terms) . '" class="widefat" placeholder="palavra-chave1, palavra-chave2">';
+    echo '<p class="description">Palavras-chave separadas por vírgula para buscar produtos relacionados.</p></td>';
+    echo '</tr>';
+    
+    echo '<tr>';
+    echo '<th><label for="amazon_related_products">IDs de Produtos Relacionados</label></th>';
+    echo '<td><textarea id="amazon_related_products" name="amazon_related_products" rows="3" class="widefat" placeholder="123, 456, 789">' . esc_textarea($related_products) . '</textarea>';
+    echo '<p class="description">IDs de posts/produtos separados por vírgula que contêm links Amazon.</p></td>';
+    echo '</tr>';
+    echo '</table>';
+}
+
+// Metabox para configurações de campanha
+public function campaign_settings_meta_box($post) {
+    wp_nonce_field('amazon_campaign_meta', 'amazon_campaign_nonce');
+    
+    $start_date = get_post_meta($post->ID, '_campaign_start_date', true);
+    $end_date = get_post_meta($post->ID, '_campaign_end_date', true);
+    $target_urls = get_post_meta($post->ID, '_campaign_target_urls', true);
+    $display_type = get_post_meta($post->ID, '_campaign_display_type', true);
+    $display_position = get_post_meta($post->ID, '_campaign_display_position', true);
+    $products = get_post_meta($post->ID, '_campaign_products', true);
+    
+    echo '<table class="form-table">';
+    
+    echo '<tr>';
+    echo '<th><label for="campaign_start_date">Data de Início</label></th>';
+    echo '<td><input type="datetime-local" id="campaign_start_date" name="campaign_start_date" value="' . esc_attr($start_date) . '"></td>';
+    echo '</tr>';
+    
+    echo '<tr>';
+    echo '<th><label for="campaign_end_date">Data de Fim</label></th>';
+    echo '<td><input type="datetime-local" id="campaign_end_date" name="campaign_end_date" value="' . esc_attr($end_date) . '"></td>';
+    echo '</tr>';
+    
+    echo '<tr>';
+    echo '<th><label for="campaign_target_urls">URLs Alvo</label></th>';
+    echo '<td><textarea id="campaign_target_urls" name="campaign_target_urls" rows="3" class="widefat" placeholder="/categoria/produto, /post-especifico">' . esc_textarea($target_urls) . '</textarea>';
+    echo '<p class="description">URLs onde a campanha deve aparecer (uma por linha). Deixe em branco para exibir em todas.</p></td>';
+    echo '</tr>';
+    
+    echo '<tr>';
+    echo '<th><label for="campaign_display_type">Tipo de Exibição</label></th>';
+    echo '<td><select id="campaign_display_type" name="campaign_display_type">';
+    echo '<option value="popup"' . selected($display_type, 'popup', false) . '>Popup</option>';
+    echo '<option value="banner_horizontal"' . selected($display_type, 'banner_horizontal', false) . '>Banner Horizontal</option>';
+    echo '<option value="banner_vertical"' . selected($display_type, 'banner_vertical', false) . '>Banner Vertical</option>';
+    echo '<option value="sticky_bar"' . selected($display_type, 'sticky_bar', false) . '>Barra Fixa</option>';
+    echo '</select></td>';
+    echo '</tr>';
+    
+    echo '<tr>';
+    echo '<th><label for="campaign_display_position">Posição</label></th>';
+    echo '<td><select id="campaign_display_position" name="campaign_display_position">';
+    echo '<option value="auto"' . selected($display_position, 'auto', false) . '>Automático</option>';
+    echo '<option value="header"' . selected($display_position, 'header', false) . '>Cabeçalho</option>';
+    echo '<option value="footer"' . selected($display_position, 'footer', false) . '>Rodapé</option>';
+    echo '<option value="before_content"' . selected($display_position, 'before_content', false) . '>Antes do Conteúdo</option>';
+    echo '<option value="after_content"' . selected($display_position, 'after_content', false) . '>Depois do Conteúdo</option>';
+    echo '</select></td>';
+    echo '</tr>';
+    
+    echo '<tr>';
+    echo '<th><label for="campaign_products">IDs dos Produtos</label></th>';
+    echo '<td><textarea id="campaign_products" name="campaign_products" rows="3" class="widefat" placeholder="123, 456, 789">' . esc_textarea($products) . '</textarea>';
+    echo '<p class="description">IDs de posts/produtos com links Amazon para esta campanha.</p></td>';
+    echo '</tr>';
+    
+    echo '</table>';
+}
+
+// Metabox para campanhas específicas em posts/páginas
+public function page_campaign_meta_box($post) {
+    wp_nonce_field('amazon_page_campaign_meta', 'amazon_page_campaign_nonce');
+    
+    $campaign_id = get_post_meta($post->ID, '_amazon_page_campaign', true);
+    $custom_products = get_post_meta($post->ID, '_amazon_custom_products', true);
+    
+    // Busca campanhas disponíveis
+    $campaigns = get_posts(array(
+        'post_type' => 'amazon_campaign',
+        'posts_per_page' => -1,
+        'post_status' => 'publish'
+    ));
+    
+    echo '<p><label for="amazon_page_campaign">Campanha Ativa:</label></p>';
+    echo '<select id="amazon_page_campaign" name="amazon_page_campaign" class="widefat">';
+    echo '<option value="">Nenhuma campanha específica</option>';
+    
+    foreach ($campaigns as $campaign) {
+        echo '<option value="' . $campaign->ID . '"' . selected($campaign_id, $campaign->ID, false) . '>' . esc_html($campaign->post_title) . '</option>';
+    }
+    
+    echo '</select>';
+    
+    echo '<p style="margin-top: 15px;"><label for="amazon_custom_products">Ou, IDs de Produtos Customizados:</label></p>';
+    echo '<textarea id="amazon_custom_products" name="amazon_custom_products" rows="3" class="widefat" placeholder="123, 456, 789">' . esc_textarea($custom_products) . '</textarea>';
+    echo '<p class="description">IDs de produtos específicos para esta página (substitui a campanha selecionada).</p>';
+}
+
+// Salva dados dos metaboxes
+public function save_meta_box_data($post_id, $post) {
+    // Verifica se é um autosave
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        return;
+    }
+    
+    // Verifica permissões
+    if (!current_user_can('edit_post', $post_id)) {
+        return;
+    }
+    
+    // Salva dados do glossário
+    if (isset($_POST['amazon_glossary_nonce']) && wp_verify_nonce($_POST['amazon_glossary_nonce'], 'amazon_glossary_meta')) {
+        if (isset($_POST['amazon_search_terms'])) {
+            update_post_meta($post_id, '_amazon_search_terms', sanitize_text_field($_POST['amazon_search_terms']));
+        }
+        
+        if (isset($_POST['amazon_related_products'])) {
+            update_post_meta($post_id, '_amazon_related_products', sanitize_textarea_field($_POST['amazon_related_products']));
+        }
+    }
+    
+    // Salva dados da campanha
+    if (isset($_POST['amazon_campaign_nonce']) && wp_verify_nonce($_POST['amazon_campaign_nonce'], 'amazon_campaign_meta')) {
+        $fields = array(
+            'campaign_start_date' => '_campaign_start_date',
+            'campaign_end_date' => '_campaign_end_date',
+            'campaign_target_urls' => '_campaign_target_urls',
+            'campaign_display_type' => '_campaign_display_type',
+            'campaign_display_position' => '_campaign_display_position',
+            'campaign_products' => '_campaign_products'
+        );
+        
+        foreach ($fields as $field => $meta_key) {
+            if (isset($_POST[$field])) {
+                if (in_array($field, array('campaign_target_urls', 'campaign_products'))) {
+                    update_post_meta($post_id, $meta_key, sanitize_textarea_field($_POST[$field]));
+                } else {
+                    update_post_meta($post_id, $meta_key, sanitize_text_field($_POST[$field]));
+                }
+            }
+        }
+    }
+    
+    // Salva dados de campanha por página
+    if (isset($_POST['amazon_page_campaign_nonce']) && wp_verify_nonce($_POST['amazon_page_campaign_nonce'], 'amazon_page_campaign_meta')) {
+        if (isset($_POST['amazon_page_campaign'])) {
+            update_post_meta($post_id, '_amazon_page_campaign', sanitize_text_field($_POST['amazon_page_campaign']));
+        }
+        
+        if (isset($_POST['amazon_custom_products'])) {
+            update_post_meta($post_id, '_amazon_custom_products', sanitize_textarea_field($_POST['amazon_custom_products']));
+        }
+    }
+}
+} // Fecha a classe AmazonAffiliatePopup
 
 // Inicializa o plugin
 new AmazonAffiliatePopup();
