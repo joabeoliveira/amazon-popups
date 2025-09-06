@@ -213,3 +213,128 @@
 .amazon-code-example strong:first-child {
     margin-top: 0;
 }
+
+/* Barra de progresso para verificação de conteúdo */
+.amazon-scan-progress {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.amazon-scan-progress h4 {
+    margin-top: 0;
+    color: #0073aa;
+    font-size: 16px;
+}
+
+.amazon-progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 15px 0;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.amazon-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0073aa 0%, #005177 50%, #0073aa 100%);
+    background-size: 40px 40px;
+    border-radius: 10px;
+    transition: width 0.3s ease;
+    animation: progress-animation 2s linear infinite;
+    position: relative;
+}
+
+@keyframes progress-animation {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 40px 0;
+    }
+}
+
+.amazon-progress-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.amazon-progress-text {
+    color: #666;
+    font-size: 14px;
+}
+
+.amazon-progress-percentage {
+    font-weight: bold;
+    color: #0073aa;
+    font-size: 16px;
+}
+
+.amazon-found-counter {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 10px 15px;
+    margin-top: 15px;
+    text-align: center;
+}
+
+.amazon-found-counter strong {
+    color: #0073aa;
+}
+
+#found-count {
+    color: #46b450;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.amazon-completion-message {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    padding: 15px;
+    margin-top: 15px;
+    text-align: center;
+}
+
+.amazon-completion-message p {
+    margin: 0;
+    color: #155724;
+    font-size: 16px;
+}
+
+.amazon-completion-message strong {
+    color: #0f5132;
+}
+
+/* Animação de pulsação para o contador */
+.amazon-found-counter.updated #found-count {
+    animation: counter-pulse 0.5s ease;
+}
+
+@keyframes counter-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .amazon-progress-stats {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .amazon-scan-progress {
+        padding: 15px;
+    }
+}

@@ -307,10 +307,9 @@ class AmazonAffiliatePopup {
                         <h2>Ferramentas</h2>
                         <div class="amazon-tool-card">
                             <h3>Verificar Conteúdo Existente</h3>
-                            <p>Procura por links Amazon em todos os produtos e posts existentes</p>
+                            <p>Procura por links Amazon em todos os produtos e posts existentes com barra de progresso em tempo real</p>
                             <button type="button" class="button button-primary" id="scan-all-products">Verificar Todos os Conteúdos</button>
                             <div id="scan-results" style="margin-top: 20px; display: none;">
-                                <h4>Resultado da Verificação</h4>
                                 <div id="scan-progress"></div>
                             </div>
                         </div>
@@ -1947,15 +1946,23 @@ function scan_all_amazon_products_callback() {
     $plugin = new AmazonAffiliatePopup();
     $result = $plugin->scan_all_amazon_products($offset);
     
-    if ($result['processed'] > 0) {
-        $message = 'Processados ' . $result['processed'] . ' posts/produtos com links Amazon.';
+    // Calcula estatísticas para a barra de progresso
+    $batch_size = 10; // Tamanho do lote processado
+    $processed_in_batch = $result['processed'];
+    
+    // Mensagem mais informativa
+    if ($processed_in_batch > 0) {
+        $message = 'Encontrados ' . $processed_in_batch . ' novos links Amazon neste lote.';
     } else {
-        $message = 'Nenhum link Amazon encontrado no lote atual.';
+        $message = 'Lote processado - nenhum novo link Amazon encontrado.';
     }
     
     wp_send_json_success(array(
         'message' => $message,
         'continue' => $result['continue'],
-        'offset' => $result['offset']
+        'offset' => $result['offset'],
+        'processed' => $processed_in_batch,
+        'batch_size' => $batch_size,
+        'current_offset' => $offset
     ));
 }
