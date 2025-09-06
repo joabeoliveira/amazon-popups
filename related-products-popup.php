@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Popup de Afiliados Amazon
  * Description: Exibe popups com produtos de afiliado Amazon do WooCommerce e posts comuns
- * Version: 2.8
+ * Version: 2.9
  * Author: Joabe Antonio de Oliveira
  */
 
@@ -932,16 +932,11 @@ class AmazonAffiliatePopup {
             return;
         }
         
-        // Carrega Bootstrap apenas se necessário (para carrossel)
-        $post_content = get_post_field('post_content', $post->ID);
-        if (strpos($post_content, 'template="carousel"') !== false) {
-            wp_enqueue_style('bootstrap-carousel', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css', array(), '5.3.0');
-            wp_enqueue_script('bootstrap-carousel', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js', array(), '5.3.0', true);
-        }
+
         
         // SEMPRE carrega os scripts, independentemente de ter produtos Amazon
-        wp_enqueue_style('amazon-affiliate-popup', plugin_dir_url(__FILE__) . 'popup-style.css', array(), '2.8');
-        wp_enqueue_script('amazon-affiliate-popup', plugin_dir_url(__FILE__) . 'popup-script.js', array('jquery'), '2.8', true);
+        wp_enqueue_style('amazon-affiliate-popup', plugin_dir_url(__FILE__) . 'popup-style.css', array(), '2.9');
+        wp_enqueue_script('amazon-affiliate-popup', plugin_dir_url(__FILE__) . 'popup-script.js', array('jquery'), '2.9', true);
         
         $delay = isset($this->options['popup_delay']) ? intval($this->options['popup_delay']) : 15;
         $display_position = isset($this->options['display_position']) ? $this->options['display_position'] : 'auto';
@@ -1430,6 +1425,12 @@ class AmazonAffiliatePopup {
             'show_description' => 'yes',
             'target_blank' => 'yes'
         ), $atts);
+        
+        // Carrega Bootstrap se template for carousel
+        if ($atts['template'] === 'carousel') {
+            wp_enqueue_style('bootstrap-carousel', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css', array(), '5.3.0');
+            wp_enqueue_script('bootstrap-carousel', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js', array(), '5.3.0', true);
+        }
         
         // Verifica se há URLs específicas
         if (!empty($atts['specific_urls'])) {
