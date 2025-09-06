@@ -1,0 +1,140 @@
+/* Estilos para o painel admin */
+.amazon-settings-wrap {
+    max-width: 1200px;
+}
+
+.amazon-settings-container {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.amazon-settings-main {
+    flex: 2;
+}
+
+.amazon-settings-sidebar {
+    flex: 1;
+}
+
+.amazon-settings-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border-left: 4px solid #0073aa;
+}
+
+.amazon-tool-card,
+.amazon-status-card,
+.amazon-help-card {
+    background: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.amazon-status-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.amazon-status-item:last-child {
+    border-bottom: none;
+}
+
+.status-label {
+    font-weight: 500;
+}
+
+.status-value {
+    font-weight: bold;
+    color: #0073aa;
+}
+
+.amazon-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.amazon-stat-card {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.stat-number {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #0073aa;
+    margin: 10px 0;
+}
+
+.amazon-doc-section {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.amazon-code-example {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 15px 0;
+}
+
+.amazon-code-example code {
+    background: #e9ecef;
+    padding: 2px 5px;
+    border-radius: 3px;
+}
+
+.amazon-dashboard-widget {
+    line-height: 1.6;
+}
+
+.amazon-widget-alert {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+/* Melhorias para a metabox */
+#amazon_affiliate_info .inside {
+    padding: 0;
+    margin: 0;
+}
+
+#amazon-affiliate-metabox {
+    padding: 12px;
+}
+
+#amazon-affiliate-metabox h4 {
+    margin-top: 0;
+    color: #0073aa;
+}
+
+#amazon-affiliate-metabox ul {
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+#scan-amazon-links {
+    margin-top: 10px;
+}
+
+/* Coluna personalizada */
+.column-amazon_affiliate {
+    width: 100px;
+    text-align: center;
+}

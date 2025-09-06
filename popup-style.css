@@ -1,0 +1,229 @@
+.amazon-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.amazon-popup-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.amazon-popup {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 360px; 
+    padding: 20px;
+    position: relative;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+    transform: translateY(50px);
+    transition: transform 0.4s ease;
+}
+
+.amazon-popup-overlay.active .amazon-popup {
+    transform: translateY(0);
+}
+
+.close-amazon-popup {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #777;
+    transition: color 0.2s;
+}
+
+.close-amazon-popup:hover {
+    color: #e74c3c;
+}
+
+.amazon-popup-product {
+    text-align: center;
+}
+
+.amazon-product-image {
+    margin-bottom: 15px;
+}
+
+.amazon-product-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    max-height: 180px;
+    object-fit: cover;
+}
+
+.amazon-popup-product h4 {
+    color: #2E7D32;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.amazon-popup-cta {
+    display: block;
+    padding: 12px;
+    background: linear-gradient(135deg, #FF9900 0%, #FF6600 100%);
+    color: white;
+    text-align: center;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    margin: 15px 0;
+}
+
+.amazon-popup-cta:hover {
+    background: linear-gradient(135deg, #FF8800 0%, #FF5500 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    color: white;
+}
+
+.amazon-disclaimer {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 10px;
+}
+
+.amazon-products-list {
+    margin: 30px 0;
+}
+
+.amazon-products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.amazon-product-item {
+    border: 1px solid #e0e0e0;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.amazon-product-item .amazon-product-image {
+    margin-bottom: 15px;
+}
+
+.amazon-product-item .amazon-product-image img {
+    max-height: 150px;
+}
+
+.amazon-product-item h4 {
+    color: #2E7D32;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.amazon-product-link {
+    display: inline-block;
+    padding: 10px 15px;
+    background: #FF9900;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background 0.3s;
+}
+
+.amazon-product-link:hover {
+    background: #FF6600;
+    color: white;
+}
+
+/* =============================================== */
+/* === AJUSTES ESPECÍFICOS PARA CELULAR PEQUENO === */
+/* =============================================== */
+@media (max-width: 480px) {
+    .amazon-popup {
+        /* Garante que o popup ocupe quase toda a tela, com pequenas margens */
+        width: 92%;
+        /* Reduz o espaçamento interno para o conteúdo caber melhor */
+        padding: 15px;
+    }
+
+    .amazon-product-image img {
+        /* Diminui a altura máxima da imagem para economizar espaço vertical */
+        max-height: 140px;
+    }
+
+    .amazon-popup-product h4 {
+        /* Diminui a fonte do título */
+        font-size: 1.1rem;
+    }
+
+    .amazon-popup-cta {
+        /* Diminui o botão e sua fonte */
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+
+    .amazon-disclaimer {
+        /* Diminui a fonte do aviso */
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .amazon-products-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ======================================= */
+/* === ESTILOS PARA "OFERTA ESPECIAL" === */
+/* ======================================= */
+
+/* Estilo para o novo título da oferta */
+.amazon-popup-headline {
+    color: #e74c3c; /* Cor de destaque (vermelho/laranja) */
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Animação de pulsação para o botão */
+@keyframes pulse-animation {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Aplicando a animação ao botão CTA */
+.amazon-popup-cta {
+    animation: pulse-animation 2s infinite ease-in-out;
+}
+
+/* Ajuste no título principal do produto para dar espaço ao novo headline */
+.amazon-popup-product h4 {
+    margin-top: 0;
+}
