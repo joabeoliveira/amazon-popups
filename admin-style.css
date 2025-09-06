@@ -138,3 +138,78 @@
     width: 100px;
     text-align: center;
 }
+
+/* Estilos para documentação expandida */
+.amazon-priority-system {
+    background: #e8f4f8;
+    border-left: 4px solid #0073aa;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.amazon-priority-system ol {
+    margin: 10px 0 0 20px;
+}
+
+.amazon-campaigns-guide, .amazon-glossary-guide, .amazon-advanced-settings {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.amazon-campaigns-guide h4, .amazon-glossary-guide h4, .amazon-advanced-settings h4 {
+    color: #0073aa;
+    margin-top: 0;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 8px;
+}
+
+.amazon-examples {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 6px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.amazon-examples h4 {
+    color: #856404;
+    margin-top: 20px;
+}
+
+.amazon-examples h4:first-child {
+    margin-top: 0;
+}
+
+.amazon-examples em {
+    color: #666;
+    font-style: italic;
+    display: block;
+    margin-top: 5px;
+}
+
+.amazon-code-example {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 15px 0;
+    border-left: 3px solid #0073aa;
+}
+
+.amazon-code-example p {
+    margin: 8px 0;
+}
+
+.amazon-code-example strong {
+    color: #0073aa;
+    display: block;
+    margin: 15px 0 8px 0;
+    font-size: 1.05em;
+}
+
+.amazon-code-example strong:first-child {
+    margin-top: 0;
+}

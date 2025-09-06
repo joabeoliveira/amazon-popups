@@ -401,36 +401,189 @@ class AmazonAffiliatePopup {
             <div class="amazon-docs-container">
                 <div class="amazon-doc-section">
                     <h2>Como usar o plugin</h2>
-                    <p>O plugin Popup Amazon exibe automaticamente produtos de afiliado Amazon em seu site.</p>
+                    <p>O plugin Popup Amazon v2.0 oferece um sistema completo de afiliados com recursos avançados de exibição e campanhas programadas.</p>
                     
                     <h3>Funcionalidades Principais</h3>
                     <ul>
-                        <li><strong>Popup automático</strong> - Aparece em todos os posts após alguns segundos</li>
-                        <li><strong>Shortcode</strong> - Use [amazon_products] para exibir produtos manualmente</li>
+                        <li><strong>Popup automático inteligente</strong> - Sistema de prioridade para exibição de produtos</li>
+                        <li><strong>Múltiplos shortcodes</strong> - 4 shortcodes diferentes para diversos tipos de exibição</li>
+                        <li><strong>Sistema de campanhas</strong> - Campanhas programáveis com agendamento e segmentação</li>
+                        <li><strong>Glossário integrado</strong> - Termos com produtos Amazon relacionados</li>
+                        <li><strong>Múltiplas posições</strong> - Header, footer, antes/depois do conteúdo, sidebar</li>
+                        <li><strong>Tipos de exibição variáveis</strong> - Popup, banners, sticky bar, cartões</li>
                         <li><strong>Detecção automática</strong> - Encontra links Amazon automaticamente</li>
                         <li><strong>Tag de associado</strong> - Adiciona seu ID automaticamente aos links</li>
                     </ul>
                     
+                    <h3>Sistema de Prioridade</h3>
+                    <div class="amazon-priority-system">
+                        <p>O plugin usa um sistema inteligente de prioridade para exibir produtos:</p>
+                        <ol>
+                            <li><strong>Produtos customizados por página</strong> - IDs específicos definidos na metabox da página/post</li>
+                            <li><strong>Campanha específica da página</strong> - Campanha selecionada na metabox</li>
+                            <li><strong>Campanhas ativas por URL</strong> - Campanhas que correspondem à URL atual</li>
+                            <li><strong>Produtos padrão por categoria</strong> - Comportamento original do plugin</li>
+                        </ol>
+                    </div>
+                    
                     <h3>Shortcodes Disponíveis</h3>
+                    
+                    <h4>1. [amazon_products] - Exibir Produtos (Expandido)</h4>
                     <div class="amazon-code-example">
-                        <p><code>[amazon_products]</code> - Exibe 3 produtos</p>
+                        <p><strong>Parâmetros básicos:</strong></p>
+                        <p><code>[amazon_products]</code> - Exibe 3 produtos padrão</p>
                         <p><code>[amazon_products count="5"]</code> - Exibe 5 produtos</p>
-                        <p><code>[amazon_products category="saude"]</code> - Produtos de uma categoria específica</p>
-                        <p><code>[amazon_products tag="oferta"]</code> - Produtos com tag específica</p>
-                        <p><code>[amazon_products specific_urls="https://amazon.com/produto1, https://amazon.com/produto2"]</code> - URLs específicas</p>
-                        <p><code>[amazon_banner product_id="123" type="horizontal"]</code> - Banner horizontal</p>
-                        <p><code>[amazon_banner product_id="456" type="vertical" title="Oferta Especial"]</code> - Banner vertical customizado</p>
-                        <p><code>[amazon_campaign campaign_id="789"]</code> - Exibe uma campanha específica</p>
-                        <p><code>[amazon_glossary term="SEO" show_products="yes"]</code> - Termo do glossário com produtos relacionados</p>
+                        <p><code>[amazon_products post_type="product"]</code> - Apenas produtos WooCommerce</p>
+                        
+                        <p><strong>Filtros avançados:</strong></p>
+                        <p><code>[amazon_products category="tecnologia"]</code> - Produtos de categoria específica</p>
+                        <p><code>[amazon_products tag="promocao"]</code> - Produtos com tag específica</p>
+                        <p><code>[amazon_products specific_urls="https://amazon.com/produto1,https://amazon.com/produto2"]</code> - URLs Amazon específicas</p>
+                        
+                        <p><strong>Personalização visual:</strong></p>
+                        <p><code>[amazon_products template="grid"]</code> - Layout em grade (padrão)</p>
+                        <p><code>[amazon_products template="list"]</code> - Layout em lista horizontal</p>
+                        <p><code>[amazon_products template="carousel"]</code> - Layout carrossel scrollável</p>
+                        
+                        <p><strong>Opções de exibição:</strong></p>
+                        <p><code>[amazon_products show_description="no"]</code> - Ocultar descrições</p>
+                        <p><code>[amazon_products target_blank="no"]</code> - Abrir na mesma janela</p>
+                    </div>
+                    
+                    <h4>2. [amazon_banner] - Banners Promocionais</h4>
+                    <div class="amazon-code-example">
+                        <p><strong>Banner horizontal:</strong></p>
+                        <p><code>[amazon_banner product_id="123" type="horizontal"]</code></p>
+                        <p><code>[amazon_banner product_id="123" type="horizontal" title="Oferta Especial" subtitle="50% de desconto hoje!"]</code></p>
+                        
+                        <p><strong>Banner vertical:</strong></p>
+                        <p><code>[amazon_banner product_id="456" type="vertical"]</code></p>
+                        
+                        <p><strong>Personalização completa:</strong></p>
+                        <p><code>[amazon_banner product_id="789" type="horizontal" title="Black Friday" subtitle="Mega desconto!" button_text="Comprar Agora" background_color="#000000" text_color="#ffffff"]</code></p>
+                    </div>
+                    
+                    <h4>3. [amazon_campaign] - Campanhas Específicas</h4>
+                    <div class="amazon-code-example">
+                        <p><code>[amazon_campaign campaign_id="123"]</code> - Exibe campanha por ID</p>
+                        <p><code>[amazon_campaign campaign_id="456" display_type="banner_horizontal"]</code> - Força tipo de exibição</p>
+                        
+                        <p><strong>Campanhas condicionais:</strong></p>
+                        <p><code>[amazon_campaign campaign_id="789" start_date="2024-12-01" end_date="2024-12-31"]</code></p>
+                        <p><code>[amazon_campaign campaign_id="101" target_urls="/categoria/tech,/produto-especial"]</code></p>
+                    </div>
+                    
+                    <h4>4. [amazon_glossary] - Glossário com Produtos</h4>
+                    <div class="amazon-code-example">
+                        <p><code>[amazon_glossary term="SEO"]</code> - Exibe definição do termo</p>
+                        <p><code>[amazon_glossary term="Marketing Digital" show_products="yes"]</code> - Com produtos relacionados</p>
+                        <p><code>[amazon_glossary term="E-commerce" show_products="yes" products_count="5"]</code> - 5 produtos relacionados</p>
+                    </div>
+                    
+                    <h3>Sistema de Campanhas</h3>
+                    <div class="amazon-campaigns-guide">
+                        <h4>Criando Campanhas</h4>
+                        <ol>
+                            <li>Vá em <strong>Popup Amazon → Campanhas Ativas</strong></li>
+                            <li>Clique em <strong>Criar Nova Campanha</strong></li>
+                            <li>Configure os parâmetros da campanha</li>
+                            <li>Defina produtos e URLs alvo</li>
+                            <li>Publique a campanha</li>
+                        </ol>
+                        
+                        <h4>Tipos de Campanhas</h4>
+                        <ul>
+                            <li><strong>Campanhas Globais:</strong> Exibidas em todo o site (deixe URLs alvo em branco)</li>
+                            <li><strong>Campanhas Segmentadas:</strong> Apenas em URLs específicas</li>
+                            <li><strong>Campanhas Temporais:</strong> Com data de início e fim</li>
+                            <li><strong>Campanhas por Página:</strong> Configuradas individualmente em cada post/página</li>
+                        </ul>
+                        
+                        <h4>Posições de Exibição</h4>
+                        <ul>
+                            <li><strong>Automático:</strong> Popup tradicional com delay</li>
+                            <li><strong>Cabeçalho:</strong> Fixo no topo da página</li>
+                            <li><strong>Rodapé:</strong> Fixo no final da página</li>
+                            <li><strong>Antes do conteúdo:</strong> Incorporado antes do texto principal</li>
+                            <li><strong>Depois do conteúdo:</strong> Incorporado após o texto principal</li>
+                            <li><strong>Sidebar:</strong> Na barra lateral (se suportada pelo tema)</li>
+                        </ul>
+                        
+                        <h4>Tipos de Exibição</h4>
+                        <ul>
+                            <li><strong>Popup:</strong> Modal sobreposto tradicional</li>
+                            <li><strong>Banner Horizontal:</strong> Faixa larga com produto</li>
+                            <li><strong>Banner Vertical:</strong> Coluna estreita com produto</li>
+                            <li><strong>Sticky Bar:</strong> Barra fixa na parte inferior</li>
+                            <li><strong>Cartão:</strong> Box destacado no conteúdo</li>
+                        </ul>
+                    </div>
+                    
+                    <h3>Sistema de Glossário</h3>
+                    <div class="amazon-glossary-guide">
+                        <h4>Criando Termos do Glossário</h4>
+                        <ol>
+                            <li>Vá em <strong>Glossário Amazon → Adicionar Termo</strong></li>
+                            <li>Digite o título do termo</li>
+                            <li>Escreva a definição no editor</li>
+                            <li>Configure produtos relacionados na metabox</li>
+                            <li>Publique o termo</li>
+                        </ol>
+                        
+                        <h4>Configurando Produtos Relacionados</h4>
+                        <ul>
+                            <li><strong>Termos de Busca:</strong> Palavras-chave para busca automática</li>
+                            <li><strong>IDs de Produtos:</strong> Posts/produtos específicos separados por vírgula</li>
+                        </ul>
+                    </div>
+                    
+                    <h3>Configurações Avançadas</h3>
+                    <div class="amazon-advanced-settings">
+                        <h4>Metaboxes por Página/Post</h4>
+                        <p>Cada post e página possui uma metabox <strong>"Campanha Amazon Específica"</strong> onde você pode:</p>
+                        <ul>
+                            <li>Selecionar uma campanha específica para aquela página</li>
+                            <li>Definir IDs de produtos customizados</li>
+                            <li>Sobrescrever o comportamento global</li>
+                        </ul>
+                        
+                        <h4>Configurações Globais</h4>
+                        <p>Em <strong>Popup Amazon → Configurações</strong> você pode definir:</p>
+                        <ul>
+                            <li><strong>Posição padrão:</strong> Onde exibir por padrão</li>
+                            <li><strong>Tipo de exibição padrão:</strong> Formato visual padrão</li>
+                            <li><strong>Duração de campanhas:</strong> Períodos globais</li>
+                        </ul>
                     </div>
                     
                     <h3>Dicas de Otimização</h3>
                     <ul>
-                        <li>Use o popup automático para maximizar conversões</li>
-                        <li>Combine com shortcodes estratégicos no conteúdo</li>
-                        <li>Verifique regularmente os links Amazon</li>
-                        <li>Teste diferentes tempos de exibição do popup</li>
+                        <li><strong>Use o sistema de prioridade:</strong> Configure produtos específicos para páginas importantes</li>
+                        <li><strong>Teste diferentes posições:</strong> Sticky bar pode ter melhor performance que popup</li>
+                        <li><strong>Campanhas temporais:</strong> Crie campanhas para datas especiais (Black Friday, Natal)</li>
+                        <li><strong>Segmentação por URL:</strong> Produtos diferentes para categorias diferentes</li>
+                        <li><strong>Glossário SEO:</strong> Use termos do glossário para melhorar SEO e conversões</li>
+                        <li><strong>Templates variados:</strong> Combine grid, list e carousel para diferentes contextos</li>
+                        <li><strong>Monitoramento:</strong> Verifique regularmente as campanhas ativas</li>
                     </ul>
+                    
+                    <h3>Exemplos Práticos de Uso</h3>
+                    <div class="amazon-examples">
+                        <h4>Cenário 1: Blog de Tecnologia</h4>
+                        <p><code>[amazon_products category="tecnologia" template="carousel" count="6"]</code></p>
+                        <p><em>Exibe 6 produtos de tecnologia em carrossel scrollável</em></p>
+                        
+                        <h4>Cenário 2: Post sobre Fitness</h4>
+                        <p><code>[amazon_glossary term="Whey Protein" show_products="yes" products_count="4"]</code></p>
+                        <p><em>Explica o termo e mostra 4 produtos relacionados</em></p>
+                        
+                        <h4>Cenário 3: Promoção Black Friday</h4>
+                        <p><code>[amazon_banner product_id="123" type="horizontal" title="BLACK FRIDAY" subtitle="Até 70% OFF" background_color="#000000" text_color="#ffffff"]</code></p>
+                        
+                        <h4>Cenário 4: Review de Produto</h4>
+                        <p><code>[amazon_products specific_urls="https://amazon.com/produto-review" template="list"]</code></p>
+                        <p><em>Exibe apenas o produto específico sendo revisado</em></p>
+                    </div>
                 </div>
             </div>
         </div>
