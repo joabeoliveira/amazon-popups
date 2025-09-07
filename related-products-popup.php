@@ -449,7 +449,7 @@ class AmazonAffiliatePopup {
                         <p><strong>Personalização visual:</strong></p>
                         <p><code>[amazon_products template="grid"]</code> - Layout em grade (padrão)</p>
                         <p><code>[amazon_products template="list"]</code> - Layout em lista horizontal</p>
-                        <p><code>[amazon_products template="carousel"]</code> - Layout carrossel com Bootstrap 5</p>
+                        
                         
                         <p><strong>Opções de exibição:</strong></p>
                         <p><code>[amazon_products show_description="no"]</code> - Ocultar descrições</p>
@@ -542,22 +542,7 @@ class AmazonAffiliatePopup {
                             <li><strong>IDs de Produtos:</strong> Posts/produtos específicos separados por vírgula</li>
                         </ul>
                     </div>
-                    
-                    <h3>Novidades da Versão 2.6 🆕</h3>
-                    <div class="amazon-update-notice">
-                        <h4>🎆 Carrossel Bootstrap Implementado!</h4>
-                        <ul>
-                            <li><strong>Performance Superior:</strong> Carrossel Bootstrap 5 nativo</li>
-                            <li><strong>Responsividade Total:</strong> Funciona perfeitamente em todos os dispositivos</li>
-                            <li><strong>Navegação Suave:</strong> Controles nativos com animações fluidas</li>
-                            <li><strong>Acessibilidade:</strong> Totalmente acessível com navegação por teclado</li>
-                            <li><strong>Design Premium:</strong> Cards modernos com hover effects</li>
-                            <li><strong>3 Produtos por Slide:</strong> Layout otimizado para melhor visualização</li>
-                        </ul>
-                        <p><strong>Como usar:</strong> <code>[amazon_products template="carousel" count="9"]</code></p>
-                        <p class="amazon-tip">💡 <strong>Dica:</strong> Use múltiplos de 3 no count para melhor aproveitamento dos slides!</p>
-                    </div>
-                    
+                                                            
                     <h3>Configurações Avançadas</h3>
                     <div class="amazon-advanced-settings">
                         <h4>Metaboxes por Página/Post</h4>
@@ -1428,9 +1413,7 @@ class AmazonAffiliatePopup {
             'show_description' => 'yes',
             'target_blank' => 'yes'
         ), $atts);
-        
-        // Não carrega mais Bootstrap para carrossel
-        
+                       
         // Verifica se há URLs específicas
         if (!empty($atts['specific_urls'])) {
             return $this->render_specific_amazon_products($atts);
